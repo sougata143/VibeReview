@@ -1,0 +1,28 @@
+# app/policies.yaml
+# RBAC (Role-Based Access Control) policies for VibeReview sub-agents.
+# Deny-by-default structural gating.
+
+roles:
+  search_agent:
+    allowed_tools:
+      - "query_spanner_graph"
+      - "search_vector_db"
+      - "list_resources"
+  story_agent:
+    allowed_tools:
+      - "fetch_epic"
+      - "get_requirements"
+  impact_agent:
+    allowed_tools:
+      - "scan_call_graph"
+      - "track_dependencies"
+  task_breakdown_agent:
+    allowed_tools:
+      - "create_jira_ticket"
+      - "order_tasks"
+  coding_agent:
+    allowed_tools:
+      - "execute_sandbox"
+      - "apply_git_diff"
+      - "run_unit_tests"
+      - "request_input"

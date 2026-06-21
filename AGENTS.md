@@ -1,0 +1,5 @@
+# General Agent Directives
+- **Think Before You Code:** Always explicitly state your assumptions, surface tradeoffs, and halt to ask for clarification the moment you encounter ambiguity rather than guessing silently [5].
+- **Minimalism:** Write only the absolute minimum amount of code required to solve the immediate problem. Strictly avoid speculative features or unrequested abstractions [5].
+- **Surgical Changes:** When editing existing code, restrict your updates only to the exact lines necessary to fulfill the request. Leave adjacent, unbroken code completely untouched [5].
+- **Test-Driven Execution:** Approach every task through goal-driven execution. Always write a reproducing or failing test first, and independently loop through verification until that specific goal is strictly met [3].
