@@ -64,13 +64,13 @@ graph LR
 ```
 ```mermaid
 graph TD
-    subgraph Active Defense Layer
+    subgraph ADL ["Active Defense Layer"]
         ID["Agentic Identity"]
         VD["The Vibe Diff - MFA"]
         RBG["Red, Blue, and Green Teaming"]
     end
     
-    subgraph Code & Execution Workflow
+    subgraph CEW ["Code & Execution Workflow"]
         NIA["Non-Interactive Access"]
         SM["State Management"]
         SIL["Shift Left IDE Linters"]
@@ -80,7 +80,7 @@ graph TD
         MS["MCP Spoofing Defense"]
     end
     
-    subgraph Agent Security Pillars
+    subgraph ASP ["Agent Security Pillars"]
         P1["1. Infrastructure"]
         P2["2. Data"]
         P3["3. Model"]
@@ -90,8 +90,8 @@ graph TD
         P7["7. Governance"]
     end
 
-    Active Defense Layer -.-> Code & Execution Workflow
-    Code & Execution Workflow -.-> Agent Security Pillars
+    ADL -.-> CEW
+    CEW -.-> ASP
 ```
 
 ```mermaid

@@ -51,7 +51,7 @@ graph TD
     A["Start: PR / Code Audit Trigger"] --> B["ContextResolver: Mask PII & Secrets"]
     B --> C["ADK Workflow Orchestrator"]
     
-    subgraph Multi-Agent Pipeline (ADK)
+    subgraph MAP ["Multi-Agent Pipeline (ADK)"]
         C --> D["Search Agent"]
         D --> E["Story Agent"]
         E --> F["Impact Agent"]
@@ -59,12 +59,12 @@ graph TD
         G --> H["Coding Agent"]
     end
     
-    subgraph Model Context Protocol (MCP)
+    subgraph MCP ["Model Context Protocol (MCP)"]
         D <--> I[("Spanner Graph MCP")]
         H <--> J[("GitHub MCP")]
     end
     
-    subgraph Hybrid Policy Server & Guardrails
+    subgraph HPSG ["Hybrid Policy Server & Guardrails"]
         H --> K{"Hybrid Policy Server"}
         K -- 1. Structural Gating (RBAC) --> L["Check policies.yaml"]
         K -- 2. Semantic Gating (LLM) --> M["Gemini Inspection"]
