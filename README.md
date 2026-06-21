@@ -51,8 +51,8 @@ VibeReview integrates local stdio-based subprocess connections to external syste
 ```mermaid
 graph LR
     subgraph Inputs
-        KG[Knowledge Graph<br/>code, docs, tickets, other DBs]
-        CC[Code Context<br/>PR diffs, comments, main]
+        KG["Knowledge Graph<br/>code, docs, tickets, other DBs"]
+        CC["Code Context<br/>PR diffs, comments, main"]
     end
     
     subgraph Sub-Agent Pipeline
@@ -65,29 +65,29 @@ graph LR
 ```mermaid
 graph TD
     subgraph Active Defense Layer
-        ID[Agentic Identity]
-        VD[The Vibe Diff - MFA]
-        RBG[Red, Blue, and Green Teaming]
+        ID["Agentic Identity"]
+        VD["The Vibe Diff - MFA"]
+        RBG["Red, Blue, and Green Teaming"]
     end
     
     subgraph Code & Execution Workflow
-        NIA[Non-Interactive Access]
-        SM[State Management]
-        SIL[Shift Left IDE Linters]
-        SB[Ephemeral Sandboxing] --- NIA
-        EG[Egress Governance] --- NIA
-        HPB[Hallucinated Package Blockers] --- SIL
-        MS[MCP Spoofing Defense]
+        NIA["Non-Interactive Access"]
+        SM["State Management"]
+        SIL["Shift Left IDE Linters"]
+        SB["Ephemeral Sandboxing"] --- NIA
+        EG["Egress Governance"] --- NIA
+        HPB["Hallucinated Package Blockers"] --- SIL
+        MS["MCP Spoofing Defense"]
     end
     
     subgraph Agent Security Pillars
-        P1[1. Infrastructure]
-        P2[2. Data]
-        P3[3. Model]
-        P4[4. App & Runtime]
-        P5[5. IAM]
-        P6[6. Observability & SecOps]
-        P7[7. Governance]
+        P1["1. Infrastructure"]
+        P2["2. Data"]
+        P3["3. Model"]
+        P4["4. App & Runtime"]
+        P5["5. IAM"]
+        P6["6. Observability & SecOps"]
+        P7["7. Governance"]
     end
 
     Active Defense Layer -.-> Code & Execution Workflow
@@ -98,11 +98,11 @@ graph TD
 graph TD
     subgraph Agent Harness
         LLM((LLM))
-        Mem[Session / Memory Store]
-        Orch[Orchestration Logic]
-        Guard[Guardrails & Hooks]
-        Tools[Tools & MCP Servers]
-        Obs[Observability & Tracing]
+        Mem["Session / Memory Store"]
+        Orch["Orchestration Logic"]
+        Guard["Guardrails & Hooks"]
+        Tools["Tools & MCP Servers"]
+        Obs["Observability & Tracing"]
     end
 
     LLM --- Mem
@@ -111,24 +111,24 @@ graph TD
     LLM --- Tools
     LLM --- Obs
     
-    Tools -- MCP Transport --> SG[(Spanner Graph Database)]
-    Tools -- MCP Transport --> GH[GitHub API]
+    Tools -- MCP Transport --> SG[("Spanner Graph Database")]
+    Tools -- MCP Transport --> GH["GitHub API"]
 ```
 
 ```mermaid
 graph TD
     subgraph Developer Zone
-        Dev((Developer)) --> Specs[Define Specs]
-        Specs --> Guardrails[Design Guardrails]
-        Guardrails --> Review[Review & Approve]
+        Dev((Developer)) --> Specs["Define Specs"]
+        Specs --> Guardrails["Design Guardrails"]
+        Guardrails --> Review["Review & Approve"]
     end
     
     subgraph Agent Factory Floor
-        Specs -.-> Plan[Planning Agent]
-        Plan --> Code[Coding Agent]
-        Code --> Test{Tests & Verification}
+        Specs -.-> Plan["Planning Agent"]
+        Plan --> Code["Coding Agent"]
+        Code --> Test{"Tests & Verification"}
         Test -- Fail: Feedback Loop --> Plan
-        Test -- Pass --> Out[Verified Output]
+        Test -- Pass --> Out["Verified Output"]
     end
 ```
 

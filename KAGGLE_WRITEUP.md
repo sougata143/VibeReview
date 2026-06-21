@@ -48,36 +48,36 @@ VibeReview follows a modular, secure design. The workflow starts from repository
 
 ```mermaid
 graph TD
-    A[Start: PR / Code Audit Trigger] --> B[ContextResolver: Mask PII & Secrets]
-    B --> C[ADK Workflow Orchestrator]
+    A["Start: PR / Code Audit Trigger"] --> B["ContextResolver: Mask PII & Secrets"]
+    B --> C["ADK Workflow Orchestrator"]
     
     subgraph Multi-Agent Pipeline (ADK)
-        C --> D[Search Agent]
-        D --> E[Story Agent]
-        E --> F[Impact Agent]
-        F --> G[Task-Breakdown Agent]
-        G --> H[Coding Agent]
+        C --> D["Search Agent"]
+        D --> E["Story Agent"]
+        E --> F["Impact Agent"]
+        F --> G["Task-Breakdown Agent"]
+        G --> H["Coding Agent"]
     end
     
     subgraph Model Context Protocol (MCP)
-        D <--> I[(Spanner Graph MCP)]
-        H <--> J[(GitHub MCP)]
+        D <--> I[("Spanner Graph MCP")]
+        H <--> J[("GitHub MCP")]
     end
     
     subgraph Hybrid Policy Server & Guardrails
-        H --> K{Hybrid Policy Server}
-        K -- 1. Structural Gating (RBAC) --> L[Check policies.yaml]
-        K -- 2. Semantic Gating (LLM) --> M[Gemini Inspection]
-        L --> N{Approved?}
+        H --> K{"Hybrid Policy Server"}
+        K -- 1. Structural Gating (RBAC) --> L["Check policies.yaml"]
+        K -- 2. Semantic Gating (LLM) --> M["Gemini Inspection"]
+        L --> N{"Approved?"}
         M --> N
     end
     
-    N -- Yes --> O[gVisor Sandbox execution]
-    N -- No / Anomaly --> P[Red/Blue/Green Security Plugin]
-    P --> Q[Stateful Quarantine: Revoke Access & Freeze State]
-    Q --> R[Green Team: Auto-Remediation]
-    O --> S[Test-Driven Verification: Run Pytest]
-    S --> T[Output: Unmasked Vibe Diff & MFA Approval]
+    N -- Yes --> O["gVisor Sandbox execution"]
+    N -- No / Anomaly --> P["Red/Blue/Green Security Plugin"]
+    P --> Q["Stateful Quarantine: Revoke Access & Freeze State"]
+    Q --> R["Green Team: Auto-Remediation"]
+    O --> S["Test-Driven Verification: Run Pytest"]
+    S --> T["Output: Unmasked Vibe Diff & MFA Approval"]
 ```
 
 [Insert Diagram Here]
