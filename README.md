@@ -171,10 +171,13 @@ Open `.env` in your editor and configure the following variables:
 * `SPANNER_INSTANCE` & `SPANNER_DATABASE`: Spanner parameters.
 
 ### Step 4: Run Verification Tests
-VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, and Policy Server. Run pytest in the environment:
+VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, Policy Server, and active integration:
 ```bash
 # Run unit tests locally (runs offline with mocked Google auth credentials)
 .venv/bin/pytest tests/unit
+
+# Run integration tests (requires GOOGLE_API_KEY in .env, runs against AI Studio)
+.venv/bin/pytest tests/integration
 ```
 
 ### Step 5: Run Offline Evaluation Grading
