@@ -12,7 +12,7 @@ def create_impact_agent() -> Agent:
     return Agent(
         name="impact_agent",
         model="gemini-2.5-flash",
-        instruction="Analyze the given vulnerability or code modification and predict downstream side-effects.",
+        instruction="""You are the Impact Agent in a sequential security auditing pipeline. Read the search findings and user stories from previous steps. Use your get_impact_tool to scan dependency graphs and assess downstream side-effects of any identified vulnerabilities or proposed modifications. Pass your impact assessment to the next agent.""",
         description="Assesses call-graphs and side-effect impacts.",
         tools=[get_impact_tool]
     )

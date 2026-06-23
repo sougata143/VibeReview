@@ -12,7 +12,7 @@ def create_task_breakdown_agent() -> Agent:
     return Agent(
         name="task_breakdown_agent",
         model="gemini-2.5-flash",
-        instruction="Process requirements and partition work into atomic tasks.",
+        instruction="""You are the Task-Breakdown Agent in a sequential security auditing pipeline. Read the vulnerability impact assessment. Partition the required refactoring work into atomic tasks and create work tickets using your create_work_tickets tool.""",
         description="Breaks down work into tickets.",
         tools=[create_work_tickets]
     )

@@ -12,7 +12,7 @@ def create_coding_agent() -> Agent:
     return Agent(
         name="coding_agent",
         model="gemini-2.5-flash",
-        instruction="Generate refactoring edits, execute verification tests, and apply fixes in the gVisor sandbox.",
+        instruction="""You are the Coding Agent in a sequential security auditing pipeline. Read the work tickets and partition plan. Generate the refactored edits, execute the verification tests, and apply fixes in the gVisor sandbox using your run_sandbox tool.""",
         description="Executes code refactoring and fixes.",
         tools=[run_sandbox]
     )

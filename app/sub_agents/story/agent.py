@@ -12,7 +12,7 @@ def create_story_agent() -> Agent:
     return Agent(
         name="story_agent",
         model="gemini-2.5-flash",
-        instruction="Capture ticket and user requirements for the context of audits.",
+        instruction="""You are the Story Agent in a sequential security auditing pipeline. Read the search findings from the search_agent. Use your get_epic_details tool to fetch and extract epic requirements and context for any related tasks or tickets. Summarize requirements for the next agent.""",
         description="Captures epic requirements.",
         tools=[get_epic_details]
     )
