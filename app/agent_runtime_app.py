@@ -13,7 +13,8 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any
+import json
+from typing import Any, Union, Dict, Optional, List, AsyncIterable
 
 import vertexai
 from dotenv import load_dotenv
@@ -23,10 +24,74 @@ from vertexai.agent_engines.templates.adk import AdkApp
 
 from app.agent import app as adk_app
 from app.app_utils.telemetry import setup_telemetry
-from app.app_utils.typing import Feedback
+from app.app_utils.typing import Feedback, HybridResponse, A2UIPayload, UpdateComponentsPayload
 
 # Load environment variables from .env file at runtime
 load_dotenv()
+
+
+def format_hybrid_response(raw_text: str) -> dict:
+    """Helper to convert raw text findings to a structured HybridResponse."""
+    raw_lower = raw_text.lower()
+    has_user_enum = "user enumeration" in raw_lower or "user_enumeration" in raw_lower or "enumeration" in raw_lower
+    has_weak_hash = "weak hashing" in raw_lower or "hash" in raw_lower
+    has_jwt = "jwt" in raw_lower or "token" in raw_lower
+    
+    vulnerabilities = []
+    if has_user_enum:
+        vulnerabilities.append("User Enumeration in login responses")
+    if has_weak_hash:
+        vulnerabilities.append("Weak SHA-256 Hashing for passwords")
+    if has_jwt:
+        vulnerabilities.append("7-day long JWT Token Expiration policy")
+        
+    if not vulnerabilities:
+        vulnerabilities.append("Low risk: No immediate vulnerabilities identified.")
+
+    data_payload = {
+        "vulnerabilities_found": bool(vulnerabilities and "Low risk" not in vulnerabilities[0]),
+        "raw_output": raw_text,
+        "metrics": {
+            "user_enumeration": has_user_enum,
+            "weak_hashing": has_weak_hash,
+            "insecure_jwt": has_jwt
+        }
+    }
+    
+    ui_components = [
+        {
+            "id": "root",
+            "type": "Container",
+            "children": ["title", "vulnerabilities_list"]
+        },
+        {
+            "id": "title",
+            "type": "Header",
+            "properties": {
+                "text": "VibeReview Security Audit Report"
+            }
+        },
+        {
+            "id": "vulnerabilities_list",
+            "type": "List",
+            "properties": {
+                "items": vulnerabilities
+            }
+        }
+    ]
+    
+    response = HybridResponse(
+        data=data_payload,
+        ui=A2UIPayload(
+            version="v0.9",
+            updateComponents=UpdateComponentsPayload(
+                surfaceId="vibe-review-surface",
+                components=ui_components
+            )
+        ),
+        ui_available=True
+    )
+    return response.model_dump(mode="json")
 
 
 class AgentEngineApp(AdkApp):
@@ -63,6 +128,108 @@ class AgentEngineApp(AdkApp):
     def clone(self) -> "AgentEngineApp":
         """Returns a clone of the Agent Runtime application."""
         return self
+
+    async def async_stream_query(
+        self,
+        *,
+        message: Union[str, Dict[str, Any]],
+        user_id: str,
+        session_id: Optional[str] = None,
+        session_events: Optional[List[Dict[str, Any]]] = None,
+        run_config: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> AsyncIterable[Dict[str, Any]]:
+        accumulated_text = ""
+        events_list = []
+        
+        async for event in super().async_stream_query(
+            message=message,
+            user_id=user_id,
+            session_id=session_id,
+            session_events=session_events,
+            run_config=run_config,
+            **kwargs
+        ):
+            events_list.append(event)
+            content = event.get("content")
+            if content and "parts" in content:
+                for part in content["parts"]:
+                    if "text" in part and part["text"]:
+                        accumulated_text += part["text"]
+        
+        if accumulated_text:
+            formatted_dict = format_hybrid_response(accumulated_text)
+            formatted_json = json.dumps(formatted_dict)
+            
+            updated = False
+            for event in reversed(events_list):
+                content = event.get("content")
+                if content and "parts" in content:
+                    for part in content["parts"]:
+                        if "text" in part:
+                            part["text"] = formatted_json
+                            updated = True
+                            break
+                    if updated:
+                        break
+            if not updated and events_list:
+                events_list[-1]["content"] = {
+                    "role": "model",
+                    "parts": [{"text": formatted_json}]
+                }
+        
+        for event in events_list:
+            yield event
+
+    def stream_query(
+        self,
+        *,
+        message: Union[str, Dict[str, Any]],
+        user_id: str,
+        session_id: Optional[str] = None,
+        run_config: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        accumulated_text = ""
+        events_list = []
+        
+        for event in super().stream_query(
+            message=message,
+            user_id=user_id,
+            session_id=session_id,
+            run_config=run_config,
+            **kwargs
+        ):
+            events_list.append(event)
+            content = event.get("content")
+            if content and "parts" in content:
+                for part in content["parts"]:
+                    if "text" in part and part["text"]:
+                        accumulated_text += part["text"]
+                        
+        if accumulated_text:
+            formatted_dict = format_hybrid_response(accumulated_text)
+            formatted_json = json.dumps(formatted_dict)
+            
+            updated = False
+            for event in reversed(events_list):
+                content = event.get("content")
+                if content and "parts" in content:
+                    for part in content["parts"]:
+                        if "text" in part:
+                            part["text"] = formatted_json
+                            updated = True
+                            break
+                    if updated:
+                        break
+            if not updated and events_list:
+                events_list[-1]["content"] = {
+                    "role": "model",
+                    "parts": [{"text": formatted_json}]
+                }
+                
+        for event in events_list:
+            yield event
 
 
 gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION")

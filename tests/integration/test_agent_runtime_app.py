@@ -47,18 +47,35 @@ async def test_agent_stream_query(agent_app: AgentEngineApp) -> None:
 
     # Check for valid content in the response
     has_text_content = False
+    last_text = ""
     for event in events:
         validated_event = Event.model_validate(event)
         content = validated_event.content
         if (
             content is not None
             and content.parts
-            and any(part.text for part in content.parts)
         ):
-            has_text_content = True
-            break
+            for part in content.parts:
+                if part.text:
+                    has_text_content = True
+                    last_text = part.text
 
     assert has_text_content, "Expected at least one event with text content"
+
+    # Verify HybridResponse schema structure in the final output
+    import json
+    data = json.loads(last_text)
+    assert "data" in data, "Expected 'data' key in HybridResponse"
+    assert "ui" in data, "Expected 'ui' key in HybridResponse"
+    assert "ui_available" in data, "Expected 'ui_available' key in HybridResponse"
+
+    # Assert specific fields of HybridResponse
+    assert isinstance(data["ui_available"], bool)
+    assert isinstance(data["data"], dict)
+    assert isinstance(data["ui"], dict)
+    assert data["ui"].get("version") == "v0.9"
+    assert "updateComponents" in data["ui"]
+
 
 
 def test_agent_feedback(agent_app: AgentEngineApp) -> None:

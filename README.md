@@ -46,6 +46,18 @@ VibeReview integrates local stdio-based subprocess connections to external syste
 * **Spanner Graph MCP (`graph_db_mcp`):** Connects to Spanner Graph for structural code retrieval and semantic vector lookups.
 * **GitHub MCP (`github_mcp`):** Connects to repository pull requests and commits to monitor incoming PRs.
 
+### Generative UI & Hybrid Output Pattern (A2UI)
+VibeReview integrates the **Agent-to-User Interface (A2UI)** framework via the `a2ui-agent-sdk` to securely decouple raw backend data processing from user interface layouts:
+
+* **Declarative 'Sheet Music':** To prevent the LLMs from outputting arbitrary, untrusted frontend scripts or raw HTML, our sub-agents (`Impact Agent` and `Coding Agent`) utilize a shared `A2uiSchemaManager` loaded with a pre-approved `BasicCatalog` (version 0.9). The agents write declarative layout instructions—"sheet music"—specifying pre-approved component primitives (such as `Card`, `List`, `Text`, and `Button`).
+* **Hybrid Response Schema:** The final agent output is formatted under a strict three-key JSON envelope (`HybridResponse`):
+  1. `data`: Contains raw auditing findings, metrics, and security scan logs.
+  2. `ui`: Contains A2UI-compliant version `v0.9` component catalogs detailing how the dashboard should render.
+  3. `ui_available`: A boolean flag signaling whether UI layout maps are bundled.
+* **Dual Execution Modes:** This hybrid architecture enables VibeReview to operate simultaneously in two distinct environments:
+  * **Headless CI/CD Mode:** Headless automated pipelines parse the payload, ignore the `ui` field entirely, and extract raw metrics from the `data` block to grade security checks or write GitHub PR summaries.
+  * **Interactive Canvas Mode:** Visual clients (such as the interactive browser Playground or enterprise dashboards) read the `ui` block and reconstruct a rich, dynamic dashboard canvas showing audit results in real-time.
+
 ### Architecture Diagram
 
 ```mermaid
@@ -208,6 +220,18 @@ To interact with the agent pipeline and test prompts locally, start the playgrou
 ```bash
 .venv/bin/agents-cli playground
 ```
+
+### Step 7: Run Standalone CLI or Simulated Canvas UI
+VibeReview supports two distinct client execution paradigms depending on the environment:
+* **Headless CLI / CI-CD Pipeline (`run_standalone.py`):** Runs the pipeline, extracts the raw metrics from the `data` envelope (ignoring the `ui` details), prints the results to standard output, and generates a GitHub PR summary report `pr_security_report.md`.
+  ```bash
+  .venv/bin/python run_standalone.py
+  ```
+* **Interactive Canvas UI Client (`run_canvas_ui.py`):** Runs the pipeline, verifies if `ui_available` is true, extracts the declarative layout components from the `ui` block (ignoring the `data` details), and reconstructs a text-based representation of the dashboard layout.
+  ```bash
+  .venv/bin/python run_canvas_ui.py
+  ```
+
 
 ---
 

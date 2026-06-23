@@ -32,3 +32,29 @@ class Feedback(BaseModel):
     service_name: Literal["vibe-review"] = "vibe-review"
     user_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+
+class UpdateComponentsPayload(BaseModel):
+    surfaceId: str
+    components: list[dict]
+
+
+class A2UIPayload(BaseModel):
+    version: str = "v0.9"
+    updateComponents: UpdateComponentsPayload
+
+
+class HybridResponse(BaseModel):
+    data: dict
+    ui: A2UIPayload
+    ui_available: bool
+
+
+from a2ui.schema.manager import A2uiSchemaManager
+from a2ui.basic_catalog import BasicCatalog
+
+schema_manager = A2uiSchemaManager(
+    version="0.9",
+    catalogs=[BasicCatalog.get_config("0.9")]
+)
+
