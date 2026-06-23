@@ -11,7 +11,7 @@ def create_coding_agent() -> Agent:
     """Factory function for the Coding sub-agent."""
     return Agent(
         name="coding_agent",
-        model="gemini-flash-latest",
+        model="gemini-2.5-flash",
         instruction="Generate refactoring edits, execute verification tests, and apply fixes in the gVisor sandbox.",
         description="Executes code refactoring and fixes.",
         tools=[run_sandbox]
