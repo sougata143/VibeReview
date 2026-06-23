@@ -36,8 +36,16 @@ class AgentEngineApp(AdkApp):
         setup_telemetry()
         super().set_up()
         logging.basicConfig(level=logging.INFO)
-        logging_client = google_cloud_logging.Client()
-        self.logger = logging_client.logger(__name__)
+        if os.environ.get("INTEGRATION_TEST", "FALSE").upper() == "TRUE":
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "False"
+            os.environ["GOOGLE_GENAI_USE_ENTERPRISE"] = "False"
+            class MockLogger:
+                def log_struct(self, info, **kwargs):
+                    logging.info(f"MockLogger log_struct: {info}")
+            self.logger = MockLogger()
+        else:
+            logging_client = google_cloud_logging.Client()
+            self.logger = logging_client.logger(__name__)
         if gemini_location:
             os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
 

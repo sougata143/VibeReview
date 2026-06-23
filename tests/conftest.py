@@ -5,6 +5,9 @@ import google.auth
 import google.auth.credentials
 
 class DummyCredentials(google.auth.credentials.Credentials):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.token = "dummy-token"
     def refresh(self, request):
         pass
 
