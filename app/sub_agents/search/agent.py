@@ -12,7 +12,7 @@ def create_search_agent() -> Agent:
     """Factory function for the Search sub-agent."""
     return Agent(
         name="search_agent",
-        model="gemini-1.5-flash",
+        model="gemini-flash-latest",
         instruction="Explore the graph database to find structural details and vulnerabilities.",
         description="Searches code structure and metadata in Spanner Graph.",
         tools=[get_search_tool]

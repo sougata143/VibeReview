@@ -11,7 +11,7 @@ def create_task_breakdown_agent() -> Agent:
     """Factory function for the Task-Breakdown sub-agent."""
     return Agent(
         name="task_breakdown_agent",
-        model="gemini-1.5-flash",
+        model="gemini-flash-latest",
         instruction="Process requirements and partition work into atomic tasks.",
         description="Breaks down work into tickets.",
         tools=[create_work_tickets]

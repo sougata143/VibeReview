@@ -11,7 +11,7 @@ def create_impact_agent() -> Agent:
     """Factory function for the Impact sub-agent."""
     return Agent(
         name="impact_agent",
-        model="gemini-1.5-flash",
+        model="gemini-flash-latest",
         instruction="Analyze the given vulnerability or code modification and predict downstream side-effects.",
         description="Assesses call-graphs and side-effect impacts.",
         tools=[get_impact_tool]

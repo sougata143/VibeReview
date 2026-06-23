@@ -11,7 +11,7 @@ def create_story_agent() -> Agent:
     """Factory function for the Story sub-agent."""
     return Agent(
         name="story_agent",
-        model="gemini-1.5-flash",
+        model="gemini-flash-latest",
         instruction="Capture ticket and user requirements for the context of audits.",
         description="Captures epic requirements.",
         tools=[get_epic_details]
