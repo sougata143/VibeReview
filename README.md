@@ -205,3 +205,13 @@ To interact with the agent pipeline and test prompts locally, start the playgrou
 ```bash
 .venv/bin/agents-cli playground
 ```
+
+---
+
+## 5. Assets
+
+### Cover Page Banner
+![VibeReview Cover Banner](assets/cover_page_banner.png)
+
+### Agentic Workflow Diagram
+![VibeReview Agentic Workflow Diagram](assets/architecture_diagram.png)
