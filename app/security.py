@@ -211,9 +211,10 @@ class PolicyServer:
         if not self.check_structural_gating(agent_name, tool_name):
             return False, f"RBAC Policy Violation: Agent '{agent_name}' is not allowed to call tool '{tool_name}'"
             
-        # 2. Semantic Gating check (LLM Guardrail)
-        is_safe, reason = await self.check_semantic_gating(tool_name, tool_args)
-        if not is_safe:
-            return False, f"Semantic Firewall Policy Violation: {reason}"
+        # 2. Semantic Gating check (LLM Guardrail) - only for execution/write tools to conserve API quota
+        if tool_name in ["run_sandbox", "execute_command", "commit_changes"]:
+            is_safe, reason = await self.check_semantic_gating(tool_name, tool_args)
+            if not is_safe:
+                return False, f"Semantic Firewall Policy Violation: {reason}"
             
         return True, "Tool call approved"
