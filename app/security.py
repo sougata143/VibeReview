@@ -5,6 +5,8 @@
 import os
 import yaml
 import json
+import asyncio
+import random
 from google import genai
 from google.genai import types
 from google.adk.plugins.base_plugin import BasePlugin
@@ -118,11 +120,11 @@ class PolicyServer:
             # If Vertex AI is active, instantiate Vertex-supported GenAI client
             if use_vertex and project:
                 self.client = genai.Client(vertexai=True, project=project, location=location)
-                self.model = "gemini-pro-latest"
+                self.model = "gemini-flash-latest"
             else:
                 # Local developer model configuration
                 self.client = genai.Client()
-                self.model = "gemini-pro-latest"
+                self.model = "gemini-flash-latest"
         except Exception:
             # Fallback gracefully if GCP credentials are not active during offline local tests
             self.client = None
@@ -171,25 +173,34 @@ class PolicyServer:
         }}
         """
         
-        try:
-            # Run generate content using GenAI client asynchronously
-            response = await self.client.models.generate_content_async(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
+        max_retries = 3
+        backoff_factor = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                # Run generate content using GenAI client asynchronously
+                response = await self.client.models.generate_content_async(
+                    model=self.model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
                 )
-            )
-            
-            result = json.loads(response.text.strip())
-            decision = result.get("decision", "DENIED")
-            reason = result.get("reason", "No reason provided")
-            
-            return decision == "APPROVED", reason
-        except Exception as e:
-            # Fail-closed policy for security in case of API/network failure.
-            # If the security gating cannot run, it blocks the tool call.
-            return False, f"Semantic gating check failed to execute: {e}"
+                
+                result = json.loads(response.text.strip())
+                decision = result.get("decision", "DENIED")
+                reason = result.get("reason", "No reason provided")
+                
+                return decision == "APPROVED", reason
+            except Exception as e:
+                # If we have retries left, wait and retry
+                if attempt < max_retries - 1:
+                    sleep_time = (backoff_factor ** attempt) + random.uniform(0, 1)
+                    await asyncio.sleep(sleep_time)
+                    continue
+                # Fail-closed policy for security in case of API/network failure.
+                # If the security gating cannot run, it blocks the tool call.
+                return False, f"Semantic gating check failed to execute after {max_retries} attempts: {e}"
 
     async def verify_tool_call(self, agent_name: str, tool_name: str, tool_args: dict) -> tuple[bool, str]:
         """Combines structural and semantic gating to intercept and inspect tool calls.
