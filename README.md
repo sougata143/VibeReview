@@ -6,7 +6,7 @@
 
 ---
 
-## 30-Second Capstone Course Theme Alignment (For Judges & Evaluators)
+## 30-Second Capstone Course Theme Alignment
 
 | Course Theme | VibeReview Implementation | Key Code References |
 | :--- | :--- | :--- |
@@ -159,11 +159,7 @@ graph TD
 
 ## 10. Demo Screenshots
 
-### Cover Page Banner
-![VibeReview Cover Banner](assets/cover_page_banner.png)
-
-### Agentic Workflow Diagram
-![VibeReview Agentic Workflow Diagram](assets/architecture_diagram.png)
+![VibeReview Demo Dashboard](assets/demo.jpeg)
 
 ---
 
