@@ -1,4 +1,4 @@
-# VibeReview: Production-Ready Graph-Native Continuous Code Auditor
+# VibeReview: Self-Defending Graph-Native Continuous Code Auditor
 
 ![VibeReview Cover Banner](assets/cover_page_banner.png)
 
@@ -6,22 +6,34 @@
 
 ---
 
+## 30-Second Capstone Course Theme Alignment (For Judges & Evaluators)
+
+| Course Theme | VibeReview Implementation | Key Code References |
+| :--- | :--- | :--- |
+| **Tool Calling** | Grounded query tools in Spanner Graph, isolated execution sandbox tools, and PR generation tool bindings. | [search/agent.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/sub_agents/search/agent.py)<br>[coding/agent.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/sub_agents/coding/agent.py) |
+| **Multi-Agent Orchestration** | 5-stage sequential ADK workflow pipeline (Search ➔ Story ➔ Impact ➔ Tasks ➔ Coding). | [app/agent.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/agent.py) |
+| **Context Engineering** | Spanner Graph GQL query structures preventing context bloating; ContextResolver preprocessor for credential masking. | [app_utils/typing.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/app_utils/typing.py) |
+| **Agent Memory** | Session-level state management and trajectory persistence across sub-agent handoffs. | [agent_runtime_app.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/agent_runtime_app.py) |
+| **Guardrails & Firewalls** | Hybrid Policy Server (RBAC gating + LLM firewall) & Red/Blue/Green stateful quarantine plugin. | [app/security.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/security.py) |
+| **Evaluation** | Offline BDD grading using `agents-cli eval` mapping Task Success, Trajectory Quality, and Safety. | [tests/eval/eval_config.yaml](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/tests/eval/eval_config.yaml) |
+| **Deployment** | Google Cloud Agent Runtime containerization and GCP single-project Terraform automation. | [deployment/terraform/](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/deployment/terraform/single-project/) |
+| **Observability** | Intercepted tool-calling tracing logs and native GCP Cloud Logging service integrations. | [agent_runtime_app.py](file:///Users/sougataroy/Downloads/Kaggle%20Antigravity/Capstone%20Project/vibe-review/app/agent_runtime_app.py#L206) |
+
+---
+
 ## 1. Hero Section
 
-Continuous code auditing at enterprise scale requires analyzing code not as flat files, but as a living graph of structural relationships. VibeReview is a self-defending agentic workflow that:
-* **Grounds reasoning** in a Spanner Graph database via the Model Context Protocol (MCP).
-* **Guards execution** via an Active Security Triad (Red/Blue/Green) and a Hybrid Policy Server.
-* **Separates concerns** by emitting A2UI declarative layouts (version `v0.9` component catalogs) decoupled from raw diagnostics data, enabling both headless CI/CD automation and interactive Canvas dashboards.
+VibeReview brings zero-trust security architecture to continuous code auditing. By grounding agents in a structural Spanner Graph database, routing reasoning across a sequential Google ADK pipeline, and applying active teaming guardrails, VibeReview proves that autonomous software development can be safely deployed in secure enterprise environments.
 
 ---
 
 ## 2. Problem
 
-Enterprise continuous auditing faces four critical bottlenecks that traditional tools fail to address:
-1. **Structural Blind Spots**: Vulnerabilities rarely live in a single file. They emerge from complex relationships between schemas, call graphs, and ticket requirements. Context-blind tools cannot trace these structural paths.
-2. **Confused Deputy Vulnerabilities**: Autonomous developers can be manipulated. If an attacker injects adversarial prompts into code comments, tickets, or pull requests, a naive agent can be hijacked into introducing backdoors or executing malicious shell scripts.
-3. **PII & Credentials Leakage**: Auditing log traces and prompt trajectories risk ingesting and exposing sensitive credentials, database keys, or customer data, violating compliance frameworks.
-4. **Verification and Trajectory Drift**: Measuring audit success purely by output leads to flaky assertions. Verifying execution paths (trajectories) for safety compliance is necessary but operationally complex.
+Enterprise continuous code auditing faces four critical bottlenecks that traditional tools fail to address:
+* **Structural Blind Spots**: Vulnerabilities rarely live in a single file. They emerge from complex relationships between schemas, call graphs, and ticket requirements. Context-blind tools cannot trace these structural paths.
+* **Confused Deputy Vulnerabilities**: Autonomous developers can be manipulated. If an attacker injects adversarial prompts into code comments, tickets, or pull requests, a naive agent can be hijacked into introducing backdoors or executing malicious shell commands.
+* **PII & Credentials Leakage**: Auditing log traces and prompt trajectories risk ingesting and exposing sensitive credentials, database keys, or customer data, violating compliance frameworks.
+* **Verification and Trajectory Drift**: Measuring audit success purely by output leads to flaky assertions. Verifying execution paths (trajectories) for safety compliance is necessary but operationally complex.
 
 ---
 
@@ -35,10 +47,10 @@ Enterprise continuous auditing faces four critical bottlenecks that traditional 
 ## 4. Solution
 
 VibeReview addresses these failures through four core architectural pillars:
-* **Graph-Native Context Ingestion**: Uses a local Spanner Graph MCP gateway to traverse codebase call graphs and dependencies using GQL and vector search (ANN).
+* **Graph-Native Context Grounding**: Uses a Spanner Graph MCP gateway to traverse codebase call graphs and dependencies using GQL and vector search (ANN).
 * **Tier 3 Multi-Agent ADK Pipeline**: Partitions the auditing lifecycle into five specialized sub-agents coordinating sequentially to manage context sizes and specialize tool actions.
 * **Active Security Triad (Red/Blue/Green Teaming)**: Protects the agent runtime with active injection testing, telemetry-based anomaly detection, and stateful quarantines that freeze compromised sessions.
-* **Decoupled Generative UI (A2UI)**: Decouples raw backend data from client layouts. Agents write declarative "sheet music" using pre-approved components (Card, List, Text, Button) from a basic catalog, ensuring the UI is safe to render in any environment.
+* **Decoupled Generative UI (A2UI)**: Decouples raw backend data from client layouts. Agents write declarative layout instructions ("sheet music") referencing pre-approved components (Card, List, Text, Button) from a basic catalog, ensuring the UI is safe to render in any environment.
 
 ---
 
@@ -48,51 +60,24 @@ VibeReview decouples database context resolution, multi-agent orchestration, and
 
 ```mermaid
 graph LR
-    subgraph Inputs
-        KG["Knowledge Graph<br/>code, docs, tickets, other DBs"]
-        CC["Code Context<br/>PR diffs, comments, main"]
+    KG[Graph DB] -->|GQL / Vector| S[Search Agent]
+    CC[Code Diff] -->|PR Commit| S
+    subgraph Pipeline [ADK Pipeline Workflow]
+        S --> I[Impact]
+        I --> T[Tasks]
+        T --> C[Coding]
     end
-    
-    subgraph Sub-Agent Pipeline
-        S[Search] --> I[Impact] --> T[Tasks] --> C[Coding]
-    end
-    
-    KG -->|GQL, ANN, text| S
-    CC -->|PR Diffs & commits| S
 ```
 
 The system separates security orchestration, tooling limits, and runtime safety boundaries:
 
 ```mermaid
 graph TD
-    subgraph ADL ["Active Defense Layer"]
-        ID["Agentic Identity"]
-        VD["The Vibe Diff - MFA"]
-        RBG["Red, Blue, and Green Teaming"]
-    end
-    
-    subgraph CEW ["Code & Execution Workflow"]
-        NIA["Non-Interactive Access"]
-        SM["State Management"]
-        SIL["Shift Left IDE Linters"]
-        SB["Ephemeral Sandboxing"] --- NIA
-        EG["Egress Governance"] --- NIA
-        HPB["Hallucinated Package Blockers"] --- SIL
-        MS["MCP Spoofing Defense"]
-    end
-    
-    subgraph ASP ["Agent Security Pillars"]
-        P1["1. Infrastructure"]
-        P2["2. Data"]
-        P3["3. Model"]
-        P4["4. App & Runtime"]
-        P5["5. IAM"]
-        P6["6. Observability & SecOps"]
-        P7["7. Governance"]
-    end
-
-    ADL -.-> CEW
-    CEW -.-> ASP
+    A[Tool Call Request] --> B{RBAC Gating}
+    B -->|Fail| C[Block & Log]
+    B -->|Pass| D{Semantic Gating}
+    D -->|Fail: Malicious| C
+    D -->|Pass: Safe| E[Execute Tool]
 ```
 
 ---
@@ -105,11 +90,11 @@ VibeReview maps the continuous audit lifecycle across five sequential sub-agents
 [START] ➔ [Search Agent] ➔ [Story Agent] ➔ [Impact Agent] ➔ [Task-Breakdown Agent] ➔ [Coding Agent]
 ```
 
-1. **Search Agent**: Connects to the Spanner Graph MCP server to locate target files using structural query traversals.
-2. **Story Agent**: Parses active requirements, specifications, and issues to extract functional standards.
-3. **Impact Agent**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload.
-4. **Task-Breakdown Agent**: Partitions finding summaries into sequenced, atomic task logs.
-5. **Coding Agent**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree.
+1. **Search Agent (gemini-3.1-flash-lite)**: Connects to the Spanner Graph MCP server to locate target files using structural query traversals.
+2. **Story Agent (gemini-3.1-flash-lite)**: Parses active requirements, specifications, and issues to extract functional standards.
+3. **Impact Agent (gemini-3.1-flash-lite)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload.
+4. **Task-Breakdown Agent (gemini-3.1-flash-lite)**: Partitions finding summaries into sequenced, atomic task logs.
+5. **Coding Agent (gemini-3.1-flash-lite)**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree.
 
 ---
 
@@ -118,9 +103,7 @@ VibeReview maps the continuous audit lifecycle across five sequential sub-agents
 VibeReview enforces a defensive, multi-layered runtime guardrail system:
 
 ### A. The Hybrid Policy Server
-Acts as an interceptor for all tool requests, executing two checks:
-* **Structural Gating (RBAC)**: Checks a local `policies.yaml` manifest. If an agent requests an unauthorized tool (e.g. the Search agent attempting to write commits), the request is instantly blocked.
-* **Semantic Gating (LLM Firewall)**: Intercepts tool parameters and uses an isolated Gemini instance to inspect payloads for SQL injections, command injections, or API key exposures.
+Acts as an interceptor for all tool requests, executing structural RBAC gating and semantic firewall validation before execution.
 
 ### B. Stateful Quarantine (Red/Blue/Green Teaming)
 * **Red Team**: Injects test payloads into input variables to probe the robustness of the system.
@@ -154,6 +137,17 @@ graph TD
 ---
 
 ## 9. Example Workflow
+
+VibeReview establishes a clear collaborative pipeline between developers and the agent factory floor:
+
+```mermaid
+graph TD
+    Dev((Developer)) -->|Specs & Guardrails| Plan[Planning Agent]
+    Plan --> Code[Coding Agent]
+    Code --> Test{TDD Sandbox Tests}
+    Test -->|Fail| Plan
+    Test -->|Pass| Review[Developer Review]
+```
 
 1. An automated hook passes a codebase path and security query to the pipeline.
 2. **Search Agent** uses GQL to trace the codebase relationships and locate candidate files.
@@ -289,5 +283,3 @@ VibeReview supports two distinct client execution paradigms depending on the env
 * **Model Rate-Limiting**: Free-tier rate limits (15 RPM) present a major bottleneck for multi-agent loops. Wrapping the client connection in exponential backoff policies (`HttpRetryOptions`) resolves transient `429` errors.
 * **System Prompt Template Conflicts**: Grounding LLMs with JSON schemas containing `{expression}` formatting triggers template errors in ADK. Escaping or replacing placeholder structures prevents engine validation crashes.
 * **Presentation Boundary Isolation**: Enforcing a strict separation between raw security outputs and visual layouts via declarative A2UI templates ensures that visual dashboards can be rendered safely in web browsers without risking XSS or remote execution exploits.
-
-
