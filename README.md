@@ -94,7 +94,7 @@ VibeReview maps the continuous audit lifecycle across five sequential sub-agents
 2. **Story Agent (gemini-3.1-flash-lite)**: Parses active requirements, specifications, and issues to extract functional standards.
 3. **Impact Agent (gemini-3.1-flash-lite)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload.
 4. **Task-Breakdown Agent (gemini-3.1-flash-lite)**: Partitions finding summaries into sequenced, atomic task logs.
-5. **Coding Agent (gemini-3.1-flash-lite)**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree.
+5. **Coding Agent (gemini-3.1-flash-lite)**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree (strictly limited to pre-approved `Card`, `List`, `Text`, and `Button` primitives from the `BasicCatalog` v0.9).
 
 ---
 
@@ -142,11 +142,13 @@ VibeReview establishes a clear collaborative pipeline between developers and the
 
 ```mermaid
 graph TD
-    Dev((Developer)) -->|Specs & Guardrails| Plan[Planning Agent]
-    Plan --> Code[Coding Agent]
-    Code --> Test{TDD Sandbox Tests}
-    Test -->|Fail| Plan
-    Test -->|Pass| Review[Developer Review]
+    Search[Search Agent] --> Story[Story Agent]
+    Story --> Impact[Impact Agent]
+    Impact --> Tasks[Task Breakdown]
+    Tasks --> Code[Coding Agent]
+    Code --> Test{Sandbox TDD Check}
+    Test -->|Fail| Code
+    Test -->|Pass| Review[PR Review]
 ```
 
 1. An automated hook passes a codebase path and security query to the pipeline.
@@ -223,6 +225,8 @@ VibeReview has a comprehensive testing suite verifying the stateful quarantine, 
 # Run integration tests (requires GOOGLE_API_KEY in .env, runs against AI Studio)
 .venv/bin/pytest tests/integration
 ```
+
+* **Offline Execution**: The unit test suite (`pytest tests/unit`) runs fully offline and resolves dummy credentials automatically. Evaluators do not need active GCP access keys to verify the core teaming and quarantine engines.
 
 ### Step 5: Run Offline Evaluation Grading
 To test the agent's trajectory quality, safety compliance, and task success across all BDD scenarios without needing active Vertex AI API keys, execute the evaluation pipeline locally:
