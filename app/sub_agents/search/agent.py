@@ -223,6 +223,54 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "[OWASP A01:2021-Broken Access Control] Use of Assertions for Access Control Security": re.compile(
             r'(?i)(?:assert\s+.*hasRole|assert\s+.*isAdmin|assert\s+.*authorized)'
+        ),
+        "[OWASP A03:2021-Injection] Expression Language (EL) Injection": re.compile(
+            r'(?i)(?:\$\{\s*.*?\s*\}|#\{\s*.*?\s*\})'
+        ),
+        "[OWASP A03:2021-Injection] Server-Side Template Injection (SSTI)": re.compile(
+            r'(?i)(?:render_template\(.*request\..*|render_template_string\(.*request\..*)'
+        ),
+        "[OWASP A03:2021-Injection] CRLF Injection / HTTP Response Splitting": re.compile(
+            r'(?i)(?:\\r\\n|\b\w+\.replace\([\'"]\\n[\'"],[\'"]\\r[\'"]\))'
+        ),
+        "[OWASP A03:2021-Injection] Client-Side Template Injection": re.compile(
+            r'(?i)(?:ng-bind-html|v-html|dangerouslySetInnerHTML)'
+        ),
+        "[OWASP A07:2021-Identification and Authentication Failures] Session Fixation": re.compile(
+            r'(?i)(?:session\.id\s*=\s*request|session\.session_id\s*=\s*)'
+        ),
+        "[OWASP A07:2021-Identification and Authentication Failures] Insecure JWT Validation": re.compile(
+            r'(?i)(?:jwt\.decode\(.*verify\s*=\s*False|jwt\.decode\(.*options\s*=\s*\{.*verify_signature.*False)'
+        ),
+        "[OWASP A01:2021-Broken Access Control] Mass Assignment": re.compile(
+            r'(?i)(?:\*\*request\.form|\*\*request\.get_json\(\)|\*\*request\.json)'
+        ),
+        "[OWASP A02:2021-Cryptographic Failures] Cleartext Storage of Sensitive Information": re.compile(
+            r'(?i)(?:localStorage\.setItem\(.*(?:password|api_key|token)|cookies\.set\(.*(?:password|api_key|token))'
+        ),
+        "[OWASP A03:2021-Injection] Unrestricted File Upload": re.compile(
+            r'(?i)(?:request\.files.*save\(|MultipartFile|FileUpload)'
+        ),
+        "[OWASP A08:2021-Software and Data Integrity Failures] Memory Corruption / Use-After-Free": re.compile(
+            r'\b(?:free\s*\(.*\)(?:\n|.)*free\s*\(.*\)|free\s*\(.*\)(?:\n|.)*\b\w+\s*=|\bdelete\s+.*delete\s+.*)\b'
+        ),
+        "[OWASP A03:2021-Injection] Integer Overflow/Wraparound": re.compile(
+            r'(?i)(?:short\s+\w+\s*=\s*\d+|byte\s+\w+\s*=\s*\d+)'
+        ),
+        "[OWASP A01:2021-Broken Access Control] Race Condition / TOCTOU": re.compile(
+            r'(?i)(?:os\.path\.exists\(.*\)(?:\n|.)*open\(|file\.exists\(.*\)(?:\n|.)*file\.write)'
+        ),
+        "[OWASP A04:2021-Insecure Design] Uncontrolled Resource Consumption / DoS": re.compile(
+            r'(?i)(?:while\s+True\s*:\s*\n\s*pass|for\s+\w+\s+in\s+range\(\s*(?:999999|1000000|sys\.maxsize)\s*\))'
+        ),
+        "[OWASP A01:2021-Broken Access Control] Mobile Specific (Intent/WebView/Biometric)": re.compile(
+            r'(?i)(?:setJavaScriptEnabled\(true\)|addJavascriptInterface|exported\s*=\s*true|biometricPrompt)'
+        ),
+        "[OWASP A04:2021-Insecure Design] Hardcoded IP Addresses": re.compile(
+            r'\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})\b'
+        ),
+        "[OWASP A05:2021-Security Misconfiguration] Debug Code Left in Production": re.compile(
+            r'(?i)(?:app\.run\(.*debug\s*=\s*True|DEBUG\s*=\s*True)'
         )
     }
     
