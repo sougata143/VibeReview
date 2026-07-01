@@ -284,6 +284,10 @@ When provided with a Git/GitHub repository URL and a query, the **Search Agent**
 .venv/bin/python run_standalone.py "Clone repo https://github.com/octocat/Spoon-Knife.git and search for fork in the files."
 ```
 
+#### 📝 Sample Testing Prompt for Playground
+If you are running the interactive playground (`.venv/bin/agents-cli playground`), you can copy and paste the following prompt to test the scanning features:
+> "Clone the repository `https://github.com/octocat/Spoon-Knife.git`. Run an automated security scan on it: perform Checkmarx-style SAST checks (SQL/command injection, weak cryptography, path traversal), Checkmarx-style SCA checks (outdated/vulnerable dependencies), and SonarQube-style Code Smell audits (empty catches, hardcoded secrets). Summarize all violations found."
+
 ---
 
 ## 13. Future Work

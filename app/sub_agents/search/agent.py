@@ -90,21 +90,39 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
     ignore_dirs = {".git", ".venv", "__pycache__", ".pytest_cache", ".google-agents-cli", "node_modules"}
     ignore_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".pdf", ".pyc", ".db", ".lock"}
     
-    # SAST Patterns
+    # Multi-Language SAST Patterns (Python, JavaScript/TypeScript, Go, PHP, Java, Ruby, C/C++)
     sast_patterns = {
-        "SQL Injection": re.compile(r'(?i)\.execute\(\s*f?["\'].*\{\w+\}.*["\']\s*\)'),
-        "Command Injection": re.compile(r'(?i)(?:subprocess\.(?:run|Popen|call)\(.*shell\s*=\s*True|os\.system\()'),
-        "Insecure Cryptography (MD5/SHA1)": re.compile(r'(?i)hashlib\.(?:md5|sha1)\('),
-        "Path Traversal Risk": re.compile(r'(?i)open\(\s*(?:\w+\s*\+\s*\w+|\w+\.join\(|f["\'].*\{\w+\}))'),
-        "Cross-Site Scripting (XSS)": re.compile(r'(?i)(?:render_template_string\(|innerHTML\s*=)')
+        "SQL Injection Risk": re.compile(
+            r'(?i)(?:\.execute\(|db\.query\(|DriverManager\.getConnection\(|mysql_query\(|pg_query\().*f?["\'].*\{\w+\}.*["\']'
+        ),
+        "Command Injection Risk": re.compile(
+            r'(?i)(?:subprocess\.(?:run|Popen|call)\(.*shell\s*=\s*True|os\.system\(|exec\.Command\(|shell_exec\(|exec\(|system\(|IO\.popen\()'
+        ),
+        "Insecure Cryptography (MD5/SHA1)": re.compile(
+            r'(?i)(?:hashlib\.(?:md5|sha1)\(|md5\.New\(|sha1\.New\(|md5\(|sha1\(|DigestUtils\.(?:md5Hex|sha1Hex)\()'
+        ),
+        "Path Traversal Risk": re.compile(
+            r'(?i)(?:open\(\s*(?:\w+\s*\+\s*\w+|\w+\.join\(|f["\'].*\{\w+\})|file_get_contents\(|FileStream\(|FileInputStream\()'
+        ),
+        "Cross-Site Scripting (XSS)": re.compile(
+            r'(?i)(?:render_template_string\(|innerHTML\s*=|echo\s+.*\$_GET|echo\s+.*\$_POST|response\.write\()'
+        )
     }
     
-    # SonarQube Code Smell Patterns
+    # Multi-Language SonarQube Code Smell Patterns
     smell_patterns = {
-        "Empty Except Block": re.compile(r'except\s*:\s*\n\s*pass'),
-        "Broad Exception Catch": re.compile(r'except\s+Exception\s*:\s*\n?\s*pass'),
-        "Hardcoded Credential": re.compile(r'(?i)(?:api_key|password|secret|token)\s*=\s*["\'][a-zA-Z0-9_\-\.\~]{8,}["\']'),
-        "TODO Comment Leftover": re.compile(r'(?i)#\s*(?:todo|fixme)')
+        "Empty Exception Handler": re.compile(
+            r'(?i)(?:except\s*:\s*\n\s*pass|except\s+Exception\s*:\s*\n?\s*pass|catch\s*\(\s*\w+\s*\)\s*\{\s*\}|catch\s*\(\s*Exception\s+\w+\s*\)\s*\{\s*\})'
+        ),
+        "Hardcoded Credential / Secret": re.compile(
+            r'(?i)(?:api_key|password|secret|token|passcode|private_key)\s*=\s*["\'][a-zA-Z0-9_\-\.\~]{8,}["\']'
+        ),
+        "Leftover TODO/FIXME Comment": re.compile(
+            r'(?i)(?:#|//|/\*)\s*(?:todo|fixme)'
+        ),
+        "Broad Catch Block": re.compile(
+            r'(?i)(?:except\s+Exception|catch\s*\(\s*Exception|catch\s*\(\s*Throwable)'
+        )
     }
     
     # SCA Insecure Versions
