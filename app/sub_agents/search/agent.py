@@ -196,6 +196,33 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "Improper Output Neutralization (Log Injection)": re.compile(
             r'(?i)logger\..*\(.*replace\([\'"]\\n[\'"],\s*[\'"][\'"]\)'
+        ),
+        "Insecure Cryptographic Padding": re.compile(
+            r'(?i)(?:Cipher\.getInstance\(\s*["\'].*/PKCS1Padding["\']|algorithms\.AES\(.*,\s*modes\.ECB\(\s*\)\))'
+        ),
+        "Stored or Reflected XSS Input": re.compile(
+            r'(?i)(?:Markup\(|_GET\[.*\]|_POST\[.*\]|dangerouslySetInnerHTML)'
+        ),
+        "Use of Password Hash without Salt": re.compile(
+            r'(?i)(?:hashlib\.sha256\(\w+\.encode\(\)\)|hashlib\.sha512\(\w+\.encode\(\)\))'
+        ),
+        "Insecure Cryptographic Cipher Mode": re.compile(
+            r'(?i)(?:/CBC/PKCS5Padding|/CBC/NoPadding)'
+        ),
+        "Hardcoded Credentials in Connection String": re.compile(
+            r'(?i)(?:mongodb\+srv:\/\/|mysql:\/\/|postgresql:\/\/)[a-zA-Z0-9_\-]+:[a-zA-Z0-9_\-]+@'
+        ),
+        "Resource Injection (IP/Port manipulation)": re.compile(
+            r'(?i)(?:socket\.connect\(\s*\(\s*_GET|_GET\[[\'"]port[\'"]\])'
+        ),
+        "Use of Broken Cryptographic Algorithm RC2": re.compile(
+            r'(?i)(?:DigestUtils\.rc2Hex|Cipher\.getInstance\(\s*["\']RC2["\']\))'
+        ),
+        "Vulnerable YAML Deserialization": re.compile(
+            r'(?i)(?:yaml\.load\(\s*.*?\s*(?:,\s*Loader\s*=\s*yaml\.(?:Loader|UnsafeLoader|FullLoader))?\))'
+        ),
+        "Use of Assertions for Access Control Security": re.compile(
+            r'(?i)(?:assert\s+.*hasRole|assert\s+.*isAdmin|assert\s+.*authorized)'
         )
     }
     
