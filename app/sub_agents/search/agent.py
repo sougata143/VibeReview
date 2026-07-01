@@ -317,6 +317,39 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "Use of Deprecated APIs": re.compile(
             r'(?i)(?:urllib2|optparse|md5\.new|sha\.new)'
+        ),
+        "Cyclic Imports / Architectural Violation": re.compile(
+            r'(?i)(?:import\s+.*?\s*;\s*\n\s*import\s+.*?\s*;\s*\n\s*import\s+.*?\s*;)'
+        ),
+        "Null Pointer Dereference Hazard": re.compile(
+            r'(?i)(?:\b\w+\.delete\(\)\s*\n\s*\w+\.name|\b\w+\s*=\s*None\s*\n\s*\w+\.\w+)'
+        ),
+        "Array or Collection Out-of-Bounds Hazard": re.compile(
+            r'(?i)(?:\[\s*-1\s*\]|\[\s*len\(\w+\)\s*\])'
+        ),
+        "Incorrect API Usage Pattern": re.compile(
+            r'(?i)(?:assert\s+\w+\s*==\s*None|\.equals\(\s*\w+\s*\)\s*==\s*true)'
+        ),
+        "Mathematical Casting or Division-by-Zero Hazard": re.compile(
+            r'(?i)(?:\/\s*0\b|%\s*0\b|\bint\(\s*float\(\s*\w+\s*\)\s*\))'
+        ),
+        "Thread-Safety Violation Hazard": re.compile(
+            r'(?i)(?:threading\.Thread\(.*target\s*=\s*\w+.*\)\s*\n\s*(?!.*join|.*lock))'
+        ),
+        "Encapsulation Violation (Public Field)": re.compile(
+            r'(?i)(?:public\s+\w+\s+\w+\s*=\s*.*;)'
+        ),
+        "Disabled CSRF Configuration": re.compile(
+            r'(?i)(?:csrf\.disable\(\)|WTF_CSRF_ENABLED\s*=\s*False|csrf_enabled\s*=\s*false)'
+        ),
+        "Hardcoded IP Address Config": re.compile(
+            r'\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b'
+        ),
+        "God Class / Large Structural Smells": re.compile(
+            r'(?i)class\s+\w+\s*\(.*?\)\s*:\s*\n(?:\s*def\s+\w+\(.*?\)\s*:\s*\n){10,}'
+        ),
+        "Redundant Assignment Duplication": re.compile(
+            r'\b(\w+)\s*=\s*\1\b'
         )
     }
     
