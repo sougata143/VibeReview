@@ -263,15 +263,28 @@ To interact with the agent pipeline and test prompts locally, start the playgrou
 .venv/bin/agents-cli playground
 ```
 
+To run the playground with a specific model (e.g., `gemini-3.5-pro` or `gemini-3.5-flash`), define the `DEFAULT_MODEL` environment variable:
+```bash
+DEFAULT_MODEL="gemini-3.5-pro" .venv/bin/agents-cli playground
+```
+
 ### Step 7: Run Standalone CLI or Simulated Canvas UI
 VibeReview supports two distinct client execution paradigms depending on the environment:
 * **Headless CLI / CI-CD Pipeline (`run_standalone.py`)**: Runs the pipeline, extracts the raw metrics from the `data` envelope (ignoring the `ui` details), prints the results to standard output, and generates a GitHub PR summary report `pr_security_report.md`.
   ```bash
   .venv/bin/python run_standalone.py
   ```
+  To run using a custom model:
+  ```bash
+  DEFAULT_MODEL="gemini-3.5-pro" .venv/bin/python run_standalone.py
+  ```
 * **Interactive Canvas UI Client (`run_canvas_ui.py`)**: Runs the pipeline, verifies if `ui_available` is true, extracts the declarative layout components from the `ui` block (ignoring the `data` details), and reconstructs a text-based representation of the dashboard layout.
   ```bash
   .venv/bin/python run_canvas_ui.py
+  ```
+  To run using a custom model:
+  ```bash
+  DEFAULT_MODEL="gemini-3.5-pro" .venv/bin/python run_canvas_ui.py
   ```
 
 #### 🆕 Git Cloning & Codebase Scanning (SAST, SCA, & SonarQube Code Smells)
