@@ -106,6 +106,48 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "Cross-Site Scripting (XSS)": re.compile(
             r'(?i)(?:render_template_string\(|innerHTML\s*=|echo\s+.*\$_GET|echo\s+.*\$_POST|response\.write\()'
+        ),
+        "NoSQL Injection Risk": re.compile(
+            r'(?i)(?:\$where\s*[:=]|find\(\s*\{\s*["\']\w+["\']\s*:\s*f?["\'])'
+        ),
+        "Server-Side Request Forgery (SSRF)": re.compile(
+            r'(?i)(?:requests\.(?:get|post|put|delete|patch|request)|urllib\.request\.urlopen|http\.Get|HttpURLConnection)\(\s*(?:\w+\s*\+\s*\w+|\w+\.join|f["\'].*\{\w+\})'
+        ),
+        "Insecure Deserialization Risk": re.compile(
+            r'(?i)(?:pickle\.loads\(|yaml\.load\(\s*\w+\s*\)|marshal\.loads\(|ObjectInputStream\()'
+        ),
+        "XML External Entity (XXE) Injection": re.compile(
+            r'(?i)(?:XMLParser\(|parseString\(|etree\.parse\(|etree\.fromstring\(|DocumentBuilderFactory)'
+        ),
+        "Insecure Session/Cookie Settings": re.compile(
+            r'(?i)(?:SESSION_COOKIE_SECURE\s*=\s*False|SESSION_COOKIE_HTTPONLY\s*=\s*False|WTF_CSRF_ENABLED\s*=\s*False)'
+        ),
+        "Cross-Frame Scripting (XFS) / Clickjacking": re.compile(
+            r'(?i)(?:X-Frame-Options\s*[:=]\s*["\']ALLOW-FROM["\']|X-Frame-Options\s*[:=]\s*["\']NONE["\'])'
+        ),
+        "Insecure Direct Object References (IDOR)": re.compile(
+            r'(?i)(?:def\s+\w+\(\s*.*(?:id|user_id|uuid|account_id)\s*\)\s*:.*\n\s*.*(?:select|find|query)\()'
+        ),
+        "LDAP Injection": re.compile(
+            r'(?i)(?:ldap\.search\(|ldap\.search_s\(|InitialDirContext\(\).*(?:search|lookup)).*f?["\'].*\{\w+\}.*["\']'
+        ),
+        "XPath Injection": re.compile(
+            r'(?i)(?:\.xpath\(|\.evaluate\(|XPathFactory\.newInstance\(\)).*f?["\'].*\{\w+\}.*["\']'
+        ),
+        "Sensitive Data Exposure (Logging Leak)": re.compile(
+            r'(?i)(?:logger\.(?:info|debug|warn|error)\(.*(?:api_key|password|secret|token|passwd|pwd).*\)|System\.out\.print.*(?:password|secret).*)'
+        ),
+        "Open Redirect": re.compile(
+            r'(?i)(?:redirect\(|response\.sendRedirect\(|window\.location\s*=\s*)(?:\w+\s*\+\s*\w+|\w+\.join|f["\'].*\{\w+\}|\w+)'
+        ),
+        "Format String Vulnerability": re.compile(
+            r'(?i)(?:printf\(|sprintf\(|format\().*(?:%s|%d).*,\s*(?:\w+\s*\+\s*\w+)'
+        ),
+        "Insecure Communication / SSL Verification Disabled": re.compile(
+            r'(?i)(?:verify\s*=\s*False|verify\s*=\s*false|trustAllCerts|SSLContext\.getInstance\(\s*["\']SSL["\']\)|AllowAllHostnameVerifier)'
+        ),
+        "HTTP Parameter Pollution (HPP)": re.compile(
+            r'(?i)(?:request\.args\.getlist|request\.query_params\.getlist|getParameterValues)'
         )
     }
     
@@ -146,10 +188,12 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                 filepath = os.path.join(root, file)
                 
                 # Check for SCA in dependency config files
-                if file in ["requirements.txt", "pyproject.toml", "uv.lock"]:
+                if file in ["requirements.txt", "pyproject.toml", "uv.lock", "pom.xml", "build.gradle", "package.json"]:
                     try:
                         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                             dep_content = f.read()
+                            
+                            # Python SCA (requirements.txt / pyproject.toml)
                             for lib, constraint in sca_insecure.items():
                                 if lib in dep_content.lower():
                                     match = re.search(rf'(?i){lib}==([0-9\.]+)', dep_content)
@@ -172,6 +216,55 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                                                 "rule": "SCA Vulnerable Dependency (Insecure requests version)",
                                                 "severity": "HIGH"
                                             })
+                                            
+                            # Java SCA (pom.xml)
+                            if file == "pom.xml":
+                                if "log4j" in dep_content.lower():
+                                    match = re.search(r'<artifactId>log4j-core</artifactId>\s*<version>([0-9\.]+)</version>', dep_content)
+                                    if match:
+                                        version_str = match.group(1)
+                                        v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
+                                        if len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 17)):
+                                            sca_violations.append({
+                                                "file": filepath,
+                                                "dependency": "log4j-core",
+                                                "version": version_str,
+                                                "rule": "SCA Log4Shell Vulnerability (CVE-2021-44228)",
+                                                "severity": "CRITICAL"
+                                            })
+                                            
+                            # Gradle SCA (build.gradle)
+                            if file == "build.gradle":
+                                if "log4j" in dep_content.lower():
+                                    match = re.search(r'log4j-core:([0-9\.]+)', dep_content)
+                                    if match:
+                                        version_str = match.group(1)
+                                        v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
+                                        if len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 17)):
+                                            sca_violations.append({
+                                                "file": filepath,
+                                                "dependency": "log4j-core",
+                                                "version": version_str,
+                                                "rule": "SCA Log4Shell Vulnerability (CVE-2021-44228)",
+                                                "severity": "CRITICAL"
+                                            })
+                                            
+                            # Node.js SCA (package.json)
+                            if file == "package.json":
+                                for js_lib in ["lodash", "express"]:
+                                    if js_lib in dep_content.lower():
+                                        match = re.search(rf'"{js_lib}"\s*:\s*"[~\^]?([0-9\.]+)"', dep_content)
+                                        if match:
+                                            version_str = match.group(1)
+                                            v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
+                                            if js_lib == "lodash" and len(v_parts) >= 2 and (v_parts[0] < 4 or (v_parts[0] == 4 and v_parts[1] < 17) or (v_parts[0] == 4 and v_parts[1] == 17 and v_parts[2] < 21)):
+                                                sca_violations.append({
+                                                    "file": filepath,
+                                                    "dependency": "lodash",
+                                                    "version": version_str,
+                                                    "rule": "SCA Lodash Prototype Pollution Vulnerability (CVE-2020-8203)",
+                                                    "severity": "HIGH"
+                                                })
                     except Exception:
                         pass
                 

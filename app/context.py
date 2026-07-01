@@ -23,24 +23,35 @@ class ContextResolver:
         for pii_type, regex in self._patterns.items():
             def replace_match(match):
                 original = match.group(0)
-                label_match = re.search(r"(?i)(key|token|secret|password|passwd|pwd|authentication|auth)(\s*[:=]\s*|\s+)", original)
-                if label_match:
-                    label = label_match.group(0)
-                    raw_val = original[len(label):]
-                    is_quoted = len(raw_val) > len(raw_val.strip('\'"'))
-                    value = raw_val.strip('\'"')
-                    
-                    for placeholder, val in self._mappings.items():
-                        if val == value:
-                            return label + placeholder
-                    
-                    self._counter[pii_type] = self._counter.get(pii_type, 0) + 1
-                    placeholder = f"[[{pii_type}_{self._counter[pii_type]}]]"
-                    self._mappings[placeholder] = value
-                    self._quoted_status[placeholder] = is_quoted
-                    return label + placeholder
+                if pii_type == "API_KEY":
+                    label_match = re.search(r"(?i)(key|token|secret|password|passwd|pwd|authentication|auth)(\s*[:=]\s*|\s+)", original)
+                    if label_match:
+                        label = label_match.group(0)
+                        raw_val = original[len(label):]
+                        is_quoted = len(raw_val) > len(raw_val.strip('\'"'))
+                        value = raw_val.strip('\'"')
+                        
+                        for placeholder, val in self._mappings.items():
+                            if val == value:
+                                return label + placeholder
+                        
+                        self._counter[pii_type] = self._counter.get(pii_type, 0) + 1
+                        placeholder = f"[[{pii_type}_{self._counter[pii_type]}]]"
+                        self._mappings[placeholder] = value
+                        self._quoted_status[placeholder] = is_quoted
+                        return label + placeholder
+                    return original
                 
-                return original # No change if label not found
+                # For non-API_KEY patterns (EMAIL, IP_ADDRESS, etc.)
+                value = original
+                for placeholder, val in self._mappings.items():
+                    if val == value:
+                        return placeholder
+                
+                self._counter[pii_type] = self._counter.get(pii_type, 0) + 1
+                placeholder = f"[[{pii_type}_{self._counter[pii_type]}]]"
+                self._mappings[placeholder] = value
+                return placeholder
             
             masked_text = re.sub(regex, replace_match, masked_text)
             
