@@ -181,6 +181,21 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "Hardcoded Sensitive Keys in Config": re.compile(
             r'(?i)(?:AWS_SECRET_ACCESS_KEY|STRIPE_API_KEY|GITHUB_TOKEN|SLACK_WEBHOOK_URL)\s*=\s*["\'][a-zA-Z0-9_\-\.\~]{10,}["\']'
+        ),
+        "Insecure Temporary File Creation": re.compile(
+            r'(?i)(?:tempfile\.mktemp\(|mktemp\(|GetTempFileName\(\))'
+        ),
+        "Unsafe Java Reflection usage": re.compile(
+            r'(?i)(?:Class\.forName\(|getDeclaredMethod\(|Method\.invoke\()'
+        ),
+        "Weak Cryptographic Key Size": re.compile(
+            r'(?i)(?:RSA\.generate\(1024\)|RSA\.generate\(512\)|keySize\s*=\s*1024|keySize\s*=\s*512)'
+        ),
+        "Broken Cryptographic Hash / MD4 usage": re.compile(
+            r'(?i)(?:hashlib\.new\(\s*["\']md4["\']\s*\)|DigestUtils\.md4Hex)'
+        ),
+        "Improper Output Neutralization (Log Injection)": re.compile(
+            r'(?i)logger\..*\(.*replace\([\'"]\\n[\'"],\s*[\'"][\'"]\)'
         )
     }
     
