@@ -1,6 +1,5 @@
-# app/config.py
-# System configuration, policies, and environment variables loader.
+import os
 
 class Config:
     """System-wide configuration settings."""
-    pass
+    DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "gemini-3.1-flash-lite")

@@ -12,6 +12,7 @@ from google.genai import types
 from google.adk.plugins.base_plugin import BasePlugin
 from google.adk.tools import BaseTool, ToolContext
 from typing import Any, Optional
+from app.config import Config
 
 class SecurityAnomalyException(Exception):
     """Raised when a security anomaly is detected by the Blue/Green Team.
@@ -120,11 +121,11 @@ class PolicyServer:
             # If Vertex AI is active, instantiate Vertex-supported GenAI client
             if use_vertex and project:
                 self.client = genai.Client(vertexai=True, project=project, location=location)
-                self.model = "gemini-3.1-flash-lite"
+                self.model = Config.DEFAULT_MODEL
             else:
                 # Local developer model configuration
                 self.client = genai.Client()
-                self.model = "gemini-3.1-flash-lite"
+                self.model = Config.DEFAULT_MODEL
         except Exception:
             # Fallback gracefully if GCP credentials are not active during offline local tests
             self.client = None

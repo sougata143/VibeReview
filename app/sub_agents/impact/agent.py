@@ -4,7 +4,7 @@
 from google.adk.agents import Agent
 from google.adk.models import Gemini
 from google.genai import types
-
+from app.config import Config
 from app.app_utils.typing import schema_manager
 
 def get_impact_tool(target: str) -> dict:
@@ -30,7 +30,7 @@ def create_impact_agent() -> Agent:
     return Agent(
         name="impact_agent",
         model=Gemini(
-            model="gemini-3.1-flash-lite",
+            model=Config.DEFAULT_MODEL,
             retry_options=types.HttpRetryOptions(attempts=6, initial_delay=6.0)
         ),
         instruction=instruction,

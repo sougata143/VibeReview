@@ -5,7 +5,7 @@ import subprocess
 from google.adk.agents import Agent
 from google.adk.models import Gemini
 from google.genai import types
-
+from app.config import Config
 from app.app_utils.typing import schema_manager
 
 def execute_sandbox(command: str) -> dict:
@@ -54,7 +54,7 @@ def create_coding_agent() -> Agent:
     return Agent(
         name="coding_agent",
         model=Gemini(
-            model="gemini-3.1-flash-lite",
+            model=Config.DEFAULT_MODEL,
             retry_options=types.HttpRetryOptions(attempts=6, initial_delay=6.0)
         ),
         instruction=instruction,

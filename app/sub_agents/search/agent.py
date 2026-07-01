@@ -7,6 +7,7 @@ import shutil
 from google.adk.agents import Agent
 from google.adk.models import Gemini
 from google.genai import types
+from app.config import Config
 
 def clone_github_repo(repo_url: str, local_path: str = "cloned_repos/demo_repo") -> dict:
     """Clones a remote GitHub repository to a local directory for scanning.
@@ -552,7 +553,7 @@ def create_search_agent() -> Agent:
     return Agent(
         name="search_agent",
         model=Gemini(
-            model="gemini-3.1-flash-lite",
+            model=Config.DEFAULT_MODEL,
             retry_options=types.HttpRetryOptions(attempts=6, initial_delay=6.0)
         ),
         instruction="""You are the Search Agent. Your job is to locate the target codebase and search for files and vulnerabilities. 

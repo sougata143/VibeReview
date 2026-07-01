@@ -4,6 +4,7 @@
 from google.adk.agents import Agent
 from google.adk.models import Gemini
 from google.genai import types
+from app.config import Config
 
 def create_work_tickets(tasks: list) -> dict:
     """Mock ticket creation tool."""
@@ -14,7 +15,7 @@ def create_task_breakdown_agent() -> Agent:
     return Agent(
         name="task_breakdown_agent",
         model=Gemini(
-            model="gemini-3.1-flash-lite",
+            model=Config.DEFAULT_MODEL,
             retry_options=types.HttpRetryOptions(attempts=6, initial_delay=6.0)
         ),
         instruction="""You are the Task-Breakdown Agent in a sequential security auditing pipeline. Read the vulnerability impact assessment. Partition the required refactoring work into atomic tasks and create work tickets using your create_work_tickets tool.""",
