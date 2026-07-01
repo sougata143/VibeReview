@@ -166,6 +166,8 @@ graph TD
 ![VibeReview Demo Dashboard 3](assets/demo3.jpeg)
 ![VibeReview Demo Dashboard 4](assets/demo4.jpeg)
 ![VibeReview Demo Dashboard 5](assets/demo5.jpeg)
+![VibeReview Demo Dashboard 6](assets/demo6.jpeg)
+![VibeReview Demo Dashboard 7](assets/demo7.jpeg)
 
 ---
 
