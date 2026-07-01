@@ -8,6 +8,7 @@ roles:
       - "query_spanner_graph"
       - "search_vector_db"
       - "list_resources"
+      - "clone_github_repo"
   story_agent:
     allowed_tools:
       - "fetch_epic"

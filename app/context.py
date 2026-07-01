@@ -27,7 +27,7 @@ class ContextResolver:
             # IPv4 address matching
             "IP_ADDRESS": r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
             # API keys, tokens, credentials, and password assignments (case-insensitive matcher)
-            "API_KEY": r'(?i)(?:key|token|secret|password|passwd|pwd|auth)(?:\s*[:=]\s*|\s+)["\'][a-zA-Z0-9_\-\.\~]{16,}["\']',
+            "API_KEY": r'(?i)(?:key|token|secret|password|passwd|pwd|auth)(?:\s*[:=]\s*|\s+)["'][a-zA-Z0-9_\-\.\~]{8,}["']',
             # Standard international/local phone numbers
             "PHONE_NUMBER": r'\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b',
             # Credit card numbers (Luhn-compliant digit groups)

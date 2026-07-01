@@ -161,7 +161,11 @@ graph TD
 
 ## 10. Demo Screenshots
 
-![VibeReview Demo Dashboard](assets/demo.jpeg)
+![VibeReview Demo Dashboard 1](assets/demo1.jpeg)
+![VibeReview Demo Dashboard 2](assets/demo2.jpeg)
+![VibeReview Demo Dashboard 3](assets/demo3.jpeg)
+![VibeReview Demo Dashboard 4](assets/demo4.jpeg)
+![VibeReview Demo Dashboard 5](assets/demo5.jpeg)
 
 ---
 
@@ -267,6 +271,13 @@ VibeReview supports two distinct client execution paradigms depending on the env
   ```bash
   .venv/bin/python run_canvas_ui.py
   ```
+
+#### 🆕 Git Cloning & Local Codebase Scanning Feature
+VibeReview now supports fully automated remote repository cloning and recursive workspace directory scanning. When provided with a Git/GitHub repository URL and a query, the **Search Agent** will clone it locally to `cloned_repos/` and recursively search files for matches:
+```bash
+# Example: Clone a repository and audit it for search terms
+.venv/bin/python run_standalone.py "Clone repo https://github.com/octocat/Spoon-Knife.git and search for fork in the files."
+```
 
 ---
 

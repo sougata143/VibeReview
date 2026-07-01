@@ -12,7 +12,7 @@ dependencies = [
     "opentelemetry-api==1.42.1",
     "opentelemetry-sdk==1.42.1",
     "pydantic==2.13.4",
-    "pyjwt==2.13.0",
+    "pyjwt==2.13.1",
     "mcp==1.28.0",
     "gcsfs>=2024.11.0",
     "google-cloud-aiplatform[agent-engines,evaluation]>=1.156.0",
