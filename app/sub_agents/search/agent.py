@@ -148,6 +148,39 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "HTTP Parameter Pollution (HPP)": re.compile(
             r'(?i)(?:request\.args\.getlist|request\.query_params\.getlist|getParameterValues)'
+        ),
+        "CORS Allow All Config": re.compile(
+            r'(?i)(?:CORS_ORIGIN_ALLOW_ALL\s*=\s*True|Access-Control-Allow-Origin\s*[:=]\s*["\']\*["\'])'
+        ),
+        "Weak Cryptographic Salt / PBKDF2 Iterations": re.compile(
+            r'(?i)(?:crypt\.pbkdf2|hashlib\.pbkdf2_hmac\(.*,\s*(?:[0-9]{1,3}|[0-9]{1,3}\s*\*\s*[0-9]{1,3})\s*,|bcrypt\.gensalt\(\s*(?:[1-7])\s*\))'
+        ),
+        "Weak Pseudo-Random Number Generator (PRNG)": re.compile(
+            r'(?i)(?:random\.random\(|random\.randint\(|random\.choice\(|Math\.random\()'
+        ),
+        "Code Injection Risk (eval/exec)": re.compile(
+            r'(?i)(?:eval\(|exec\(|Function\(|evalString\()'
+        ),
+        "SQL Wildcard Injection": re.compile(
+            r'(?i)(?:select\s+.*\s+like\s+.*%|like\s*.*_GET)'
+        ),
+        "Missing Function Access Control": re.compile(
+            r'(?i)(?:@app\.route\(.*method.*post.*\)\s*\n\s*def\s+\w+\(\)\s*:\s*\n\s*(?!@auth|@login_required|@roles_required|check_permission))'
+        ),
+        "Insecure HSTS Settings": re.compile(
+            r'(?i)(?:Strict-Transport-Security\s*.*max-age=0|HSTS\s*=\s*False)'
+        ),
+        "Cookie without SameSite attribute": re.compile(
+            r'(?i)(?:set_cookie\(.*samesite\s*=\s*None|SameSite\s*=\s*None)'
+        ),
+        "Regex Denial of Service (ReDoS) Risk": re.compile(
+            r'(?i)(?:re\.compile\(.*(?:\.\*|\.\+)\s*\+|re\.match\(.*(?:\.\*|\.\+)\s*\+)'
+        ),
+        "Information Exposure through Exception Details": re.compile(
+            r'(?i)(?:traceback\.print_exc\(|print_stack\(|printStackTrace\(\s*\)|e\.toString\(\))'
+        ),
+        "Hardcoded Sensitive Keys in Config": re.compile(
+            r'(?i)(?:AWS_SECRET_ACCESS_KEY|STRIPE_API_KEY|GITHUB_TOKEN|SLACK_WEBHOOK_URL)\s*=\s*["\'][a-zA-Z0-9_\-\.\~]{10,}["\']'
         )
     }
     
@@ -164,6 +197,36 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         ),
         "Broad Catch Block": re.compile(
             r'(?i)(?:except\s+Exception|catch\s*\(\s*Exception|catch\s*\(\s*Throwable)'
+        ),
+        "Cognitive/Cyclomatic Complexity Smell": re.compile(
+            r'(?i)(?:\s*if\s+.*:\s*\n\s*if\s+.*:\s*\n\s*if\s+.*:|\s*for\s+.*:\s*\n\s*for\s+.*:\s*\n\s*for\s+.*:)'
+        ),
+        "Long Parameter List": re.compile(
+            r'(?i)def\s+\w+\(\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,'
+        ),
+        "Naming Convention Violation": re.compile(
+            r'\b(?:foo|bar|baz|temp|tmp|var|val|data)\d*\s*=\s*'
+        ),
+        "Dead Code / Unused Local Variables": re.compile(
+            r'(?i)#\s*def\s+\w+\(|#\s*class\s+\w+'
+        ),
+        "Duplicate Imports on One Line": re.compile(
+            r'(?i)(?:import\s+\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+)'
+        ),
+        "Magic Number Usage": re.compile(
+            r'(?i)(?:\* 86400|\* 3600|\* 1000|\* 60|\b3.1415926535\b)'
+        ),
+        "Suboptimal Comparison / Redundant Boolean": re.compile(
+            r'(?i)(?:==\s*True|==\s*False|!=\s*True|!=\s*False|==\s*true|==\s*false)'
+        ),
+        "Empty Class or Method": re.compile(
+            r'(?i)(?:def\s+\w+\(\s*.*?\)\s*:\s*\n\s*pass|class\s+\w+\s*:\s*\n\s*pass)'
+        ),
+        "System Exit in Code": re.compile(
+            r'(?i)(?:sys\.exit\(|os\._exit\(|System\.exit\()'
+        ),
+        "Use of Deprecated APIs": re.compile(
+            r'(?i)(?:urllib2|optparse|md5\.new|sha\.new)'
         )
     }
     
