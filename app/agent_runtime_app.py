@@ -37,6 +37,11 @@ def format_hybrid_response(raw_text: str) -> dict:
     has_weak_hash = "weak hashing" in raw_lower or "hash" in raw_lower
     has_jwt = "jwt" in raw_lower or "token" in raw_lower
     
+    # Check for SAST / SCA / Code Smells
+    has_sast = "sast" in raw_lower or "sql injection" in raw_lower or "command injection" in raw_lower or "cryptography" in raw_lower or "path traversal" in raw_lower or "xss" in raw_lower
+    has_sca = "sca" in raw_lower or "vulnerable dependency" in raw_lower or "outdated dependency" in raw_lower
+    has_smells = "code smell" in raw_lower or "empty except" in raw_lower or "broad exception" in raw_lower or "todo" in raw_lower
+    
     vulnerabilities = []
     if has_user_enum:
         vulnerabilities.append("User Enumeration in login responses")
@@ -44,6 +49,12 @@ def format_hybrid_response(raw_text: str) -> dict:
         vulnerabilities.append("Weak SHA-256 Hashing for passwords")
     if has_jwt:
         vulnerabilities.append("7-day long JWT Token Expiration policy")
+    if has_sast:
+        vulnerabilities.append("SAST Vulnerabilities (Injection/Insecure Crypto) detected")
+    if has_sca:
+        vulnerabilities.append("SCA Vulnerable/Outdated Dependencies flagged")
+    if has_smells:
+        vulnerabilities.append("SonarQube Code Smells / Quality issues found")
         
     if not vulnerabilities:
         vulnerabilities.append("Low risk: No immediate vulnerabilities identified.")
@@ -54,7 +65,10 @@ def format_hybrid_response(raw_text: str) -> dict:
         "metrics": {
             "user_enumeration": has_user_enum,
             "weak_hashing": has_weak_hash,
-            "insecure_jwt": has_jwt
+            "insecure_jwt": has_jwt,
+            "sast_vulnerabilities": has_sast,
+            "sca_vulnerabilities": has_sca,
+            "code_smells": has_smells
         }
     }
     

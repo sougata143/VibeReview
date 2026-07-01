@@ -272,10 +272,15 @@ VibeReview supports two distinct client execution paradigms depending on the env
   .venv/bin/python run_canvas_ui.py
   ```
 
-#### 🆕 Git Cloning & Local Codebase Scanning Feature
-VibeReview now supports fully automated remote repository cloning and recursive workspace directory scanning. When provided with a Git/GitHub repository URL and a query, the **Search Agent** will clone it locally to `cloned_repos/` and recursively search files for matches:
+#### 🆕 Git Cloning & Codebase Scanning (SAST, SCA, & SonarQube Code Smells)
+VibeReview now supports fully automated remote repository cloning, recursive workspace scanning, and comprehensive vulnerability assessment matching industry standards:
+* **Checkmarx-style SAST:** Automatically flags SQL Injection, Command Injection, Insecure Cryptography (MD5/SHA1 usage), Path Traversal, and XSS (Cross-Site Scripting).
+* **Software Composition Analysis (SCA):** Scans package dependency lists (like `pyproject.toml` or `requirements.txt`) and flags outdated or vulnerable third-party dependencies (such as insecure `pyjwt` or `requests` versions).
+* **SonarQube-style Code Smells:** Identifies empty try/except blocks, broad exception catches, leftover TODO comments, and hardcoded credentials/secrets.
+
+When provided with a Git/GitHub repository URL and a query, the **Search Agent** will clone it locally to `cloned_repos/` and perform these scans:
 ```bash
-# Example: Clone a repository and audit it for search terms
+# Example: Clone an external repository and run SAST, SCA, and Code Smell scans
 .venv/bin/python run_standalone.py "Clone repo https://github.com/octocat/Spoon-Knife.git and search for fork in the files."
 ```
 
