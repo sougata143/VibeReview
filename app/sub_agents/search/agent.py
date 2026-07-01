@@ -230,15 +230,39 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
         )
     }
     
-    # SCA Insecure Versions
-    sca_insecure = {
-        "pyjwt": "<2.4.0",
-        "requests": "<2.31.0",
-        "flask": "<2.0.0",
-        "django": "<4.0.0",
-        "cryptography": "<39.0.0"
+    # Extended SCA NVD / OWASP Dependency Mapping
+    sca_rules = {
+        "pyjwt": {"version": "<2.4.0", "cve": "CVE-2022-29217", "name": "PyJWT key confusion bypass", "severity": "CRITICAL"},
+        "requests": {"version": "<2.31.0", "cve": "CVE-2023-32681", "name": "Requests Proxy-Authorization leak", "severity": "HIGH"},
+        "django": {"version": "<4.0.7", "cve": "CVE-2022-34265", "name": "Django SQL Injection", "severity": "CRITICAL"},
+        "flask": {"version": "<2.2.0", "cve": "CVE-2023-30861", "name": "Flask session signing evasion", "severity": "HIGH"},
+        "cryptography": {"version": "<39.0.1", "cve": "CVE-2023-23931", "name": "Cryptography cipher bypass", "severity": "HIGH"},
+        "urllib3": {"version": "<1.26.17", "cve": "CVE-2023-43804", "name": "urllib3 Proxy-Authorization leak", "severity": "HIGH"},
+        "jinja2": {"version": "<3.1.3", "cve": "CVE-2024-22143", "name": "Jinja2 sandbox escape", "severity": "HIGH"},
+        "lodash": {"version": "<4.17.21", "cve": "CVE-2020-8203", "name": "Lodash Prototype Pollution", "severity": "HIGH"},
+        "express": {"version": "<4.19.2", "cve": "CVE-2024-43796", "name": "Express open redirect / path traversal", "severity": "HIGH"},
+        "axios": {"version": "<1.6.0", "cve": "CVE-2023-45857", "name": "Axios SSRF header leak", "severity": "HIGH"},
+        "jsonwebtoken": {"version": "<9.0.0", "cve": "CVE-2022-23540", "name": "jsonwebtoken signature validation bypass", "severity": "CRITICAL"},
+        "mongoose": {"version": "<7.0.0", "cve": "CVE-2023-26117", "name": "Mongoose prototype pollution", "severity": "HIGH"},
+        "semver": {"version": "<7.5.2", "cve": "CVE-2023-35116", "name": "Semver ReDoS vulnerability", "severity": "HIGH"},
+        "log4j-core": {"version": "<2.17.0", "cve": "CVE-2021-44228", "name": "Log4Shell RCE", "severity": "CRITICAL"},
+        "spring-beans": {"version": "<5.3.18", "cve": "CVE-2022-22965", "name": "Spring4Shell RCE", "severity": "CRITICAL"},
+        "spring-core": {"version": "<5.3.18", "cve": "CVE-2022-22965", "name": "Spring4Shell RCE", "severity": "CRITICAL"},
+        "jackson-databind": {"version": "<2.13.4", "cve": "CVE-2022-42003", "name": "Jackson-databind deserialization RCE", "severity": "CRITICAL"},
+        "commons-text": {"version": "<1.10.0", "cve": "CVE-2022-42889", "name": "Text4Shell RCE", "severity": "CRITICAL"}
     }
     
+    def is_vulnerable(version_str, target_version):
+        try:
+            v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
+            t_parts = [int(p) for p in target_version.replace('<', '').split('.') if p.isdigit()]
+            max_len = max(len(v_parts), len(t_parts))
+            v_parts += [0] * (max_len - len(v_parts))
+            t_parts += [0] * (max_len - len(t_parts))
+            return v_parts < t_parts
+        except Exception:
+            return False
+            
     try:
         for root, dirs, files in os.walk(search_path):
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
@@ -257,77 +281,72 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                             dep_content = f.read()
                             
                             # Python SCA (requirements.txt / pyproject.toml)
-                            for lib, constraint in sca_insecure.items():
-                                if lib in dep_content.lower():
-                                    match = re.search(rf'(?i){lib}==([0-9\.]+)', dep_content)
-                                    if match:
-                                        version_str = match.group(1)
-                                        v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
-                                        if lib == "pyjwt" and len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 4)):
-                                            sca_violations.append({
-                                                "file": filepath,
-                                                "dependency": lib,
-                                                "version": version_str,
-                                                "rule": "SCA Outdated Dependency (CVE-2022-29217 Risk)",
-                                                "severity": "CRITICAL"
-                                            })
-                                        elif lib == "requests" and len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 31)):
-                                            sca_violations.append({
-                                                "file": filepath,
-                                                "dependency": lib,
-                                                "version": version_str,
-                                                "rule": "SCA Vulnerable Dependency (Insecure requests version)",
-                                                "severity": "HIGH"
-                                            })
+                            if file in ["requirements.txt", "pyproject.toml", "uv.lock"]:
+                                for lib, rule in sca_rules.items():
+                                    if lib in ["pyjwt", "requests", "django", "flask", "cryptography", "urllib3", "jinja2"]:
+                                        if lib in dep_content.lower():
+                                            match = re.search(rf'(?i){lib}==([0-9\.]+)', dep_content)
+                                            if match:
+                                                version_str = match.group(1)
+                                                if is_vulnerable(version_str, rule["version"]):
+                                                    sca_violations.append({
+                                                        "file": filepath,
+                                                        "dependency": lib,
+                                                        "version": version_str,
+                                                        "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
+                                                        "severity": rule["severity"]
+                                                    })
                                             
                             # Java SCA (pom.xml)
                             if file == "pom.xml":
-                                if "log4j" in dep_content.lower():
-                                    match = re.search(r'<artifactId>log4j-core</artifactId>\s*<version>([0-9\.]+)</version>', dep_content)
-                                    if match:
-                                        version_str = match.group(1)
-                                        v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
-                                        if len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 17)):
-                                            sca_violations.append({
-                                                "file": filepath,
-                                                "dependency": "log4j-core",
-                                                "version": version_str,
-                                                "rule": "SCA Log4Shell Vulnerability (CVE-2021-44228)",
-                                                "severity": "CRITICAL"
-                                            })
+                                for lib, rule in sca_rules.items():
+                                    if lib in ["log4j-core", "spring-beans", "spring-core", "jackson-databind", "commons-text"]:
+                                        if lib in dep_content.lower():
+                                            match = re.search(rf'<artifactId>{lib}</artifactId>\s*<version>([0-9\.]+)</version>', dep_content)
+                                            if match:
+                                                version_str = match.group(1)
+                                                if is_vulnerable(version_str, rule["version"]):
+                                                    sca_violations.append({
+                                                        "file": filepath,
+                                                        "dependency": lib,
+                                                        "version": version_str,
+                                                        "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
+                                                        "severity": rule["severity"]
+                                                    })
                                             
                             # Gradle SCA (build.gradle)
                             if file == "build.gradle":
-                                if "log4j" in dep_content.lower():
-                                    match = re.search(r'log4j-core:([0-9\.]+)', dep_content)
-                                    if match:
-                                        version_str = match.group(1)
-                                        v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
-                                        if len(v_parts) >= 2 and (v_parts[0] < 2 or (v_parts[0] == 2 and v_parts[1] < 17)):
-                                            sca_violations.append({
-                                                "file": filepath,
-                                                "dependency": "log4j-core",
-                                                "version": version_str,
-                                                "rule": "SCA Log4Shell Vulnerability (CVE-2021-44228)",
-                                                "severity": "CRITICAL"
-                                            })
+                                for lib, rule in sca_rules.items():
+                                    if lib in ["log4j-core", "spring-beans", "spring-core", "jackson-databind", "commons-text"]:
+                                        if lib in dep_content.lower():
+                                            match = re.search(rf'{lib}:([0-9\.]+)', dep_content)
+                                            if match:
+                                                version_str = match.group(1)
+                                                if is_vulnerable(version_str, rule["version"]):
+                                                    sca_violations.append({
+                                                        "file": filepath,
+                                                        "dependency": lib,
+                                                        "version": version_str,
+                                                        "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
+                                                        "severity": rule["severity"]
+                                                    })
                                             
                             # Node.js SCA (package.json)
                             if file == "package.json":
-                                for js_lib in ["lodash", "express"]:
-                                    if js_lib in dep_content.lower():
-                                        match = re.search(rf'"{js_lib}"\s*:\s*"[~\^]?([0-9\.]+)"', dep_content)
-                                        if match:
-                                            version_str = match.group(1)
-                                            v_parts = [int(p) for p in version_str.split('.') if p.isdigit()]
-                                            if js_lib == "lodash" and len(v_parts) >= 2 and (v_parts[0] < 4 or (v_parts[0] == 4 and v_parts[1] < 17) or (v_parts[0] == 4 and v_parts[1] == 17 and v_parts[2] < 21)):
-                                                sca_violations.append({
-                                                    "file": filepath,
-                                                    "dependency": "lodash",
-                                                    "version": version_str,
-                                                    "rule": "SCA Lodash Prototype Pollution Vulnerability (CVE-2020-8203)",
-                                                    "severity": "HIGH"
-                                                })
+                                for lib, rule in sca_rules.items():
+                                    if lib in ["lodash", "express", "axios", "jsonwebtoken", "mongoose", "semver"]:
+                                        if lib in dep_content.lower():
+                                            match = re.search(rf'"{lib}"\s*:\s*"[~\^]?([0-9\.]+)"', dep_content)
+                                            if match:
+                                                version_str = match.group(1)
+                                                if is_vulnerable(version_str, rule["version"]):
+                                                    sca_violations.append({
+                                                        "file": filepath,
+                                                        "dependency": lib,
+                                                        "version": version_str,
+                                                        "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
+                                                        "severity": rule["severity"]
+                                                    })
                     except Exception:
                         pass
                 
