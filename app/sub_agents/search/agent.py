@@ -92,136 +92,136 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
     
     # Multi-Language SAST Patterns (Python, JavaScript/TypeScript, Go, PHP, Java, Ruby, C/C++)
     sast_patterns = {
-        "SQL Injection Risk": re.compile(
+        "[OWASP A03:2021-Injection] SQL Injection Risk": re.compile(
             r'(?i)(?:\.execute\(|db\.query\(|DriverManager\.getConnection\(|mysql_query\(|pg_query\().*f?["\'].*\{\w+\}.*["\']'
         ),
-        "Command Injection Risk": re.compile(
+        "[OWASP A03:2021-Injection] Command Injection Risk": re.compile(
             r'(?i)(?:subprocess\.(?:run|Popen|call)\(.*shell\s*=\s*True|os\.system\(|exec\.Command\(|shell_exec\(|exec\(|system\(|IO\.popen\()'
         ),
-        "Insecure Cryptography (MD5/SHA1)": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Insecure Cryptography (MD5/SHA1)": re.compile(
             r'(?i)(?:hashlib\.(?:md5|sha1)\(|md5\.New\(|sha1\.New\(|md5\(|sha1\(|DigestUtils\.(?:md5Hex|sha1Hex)\()'
         ),
-        "Path Traversal Risk": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Path Traversal Risk": re.compile(
             r'(?i)(?:open\(\s*(?:\w+\s*\+\s*\w+|\w+\.join\(|f["\'].*\{\w+\})|file_get_contents\(|FileStream\(|FileInputStream\()'
         ),
-        "Cross-Site Scripting (XSS)": re.compile(
+        "[OWASP A03:2021-Injection] Cross-Site Scripting (XSS)": re.compile(
             r'(?i)(?:render_template_string\(|innerHTML\s*=|echo\s+.*\$_GET|echo\s+.*\$_POST|response\.write\()'
         ),
-        "NoSQL Injection Risk": re.compile(
+        "[OWASP A03:2021-Injection] NoSQL Injection Risk": re.compile(
             r'(?i)(?:\$where\s*[:=]|find\(\s*\{\s*["\']\w+["\']\s*:\s*f?["\'])'
         ),
-        "Server-Side Request Forgery (SSRF)": re.compile(
+        "[OWASP A10:2021-SSRF] Server-Side Request Forgery (SSRF)": re.compile(
             r'(?i)(?:requests\.(?:get|post|put|delete|patch|request)|urllib\.request\.urlopen|http\.Get|HttpURLConnection)\(\s*(?:\w+\s*\+\s*\w+|\w+\.join|f["\'].*\{\w+\})'
         ),
-        "Insecure Deserialization Risk": re.compile(
+        "[OWASP A08:2021-Software and Data Integrity Failures] Insecure Deserialization Risk": re.compile(
             r'(?i)(?:pickle\.loads\(|yaml\.load\(\s*\w+\s*\)|marshal\.loads\(|ObjectInputStream\()'
         ),
-        "XML External Entity (XXE) Injection": re.compile(
+        "[OWASP A05:2021-Security Misconfiguration] XML External Entity (XXE) Injection": re.compile(
             r'(?i)(?:XMLParser\(|parseString\(|etree\.parse\(|etree\.fromstring\(|DocumentBuilderFactory)'
         ),
-        "Insecure Session/Cookie Settings": re.compile(
+        "[OWASP A07:2021-Identification and Authentication Failures] Insecure Session/Cookie Settings": re.compile(
             r'(?i)(?:SESSION_COOKIE_SECURE\s*=\s*False|SESSION_COOKIE_HTTPONLY\s*=\s*False|WTF_CSRF_ENABLED\s*=\s*False)'
         ),
-        "Cross-Frame Scripting (XFS) / Clickjacking": re.compile(
+        "[OWASP A05:2021-Security Misconfiguration] Cross-Frame Scripting (XFS) / Clickjacking": re.compile(
             r'(?i)(?:X-Frame-Options\s*[:=]\s*["\']ALLOW-FROM["\']|X-Frame-Options\s*[:=]\s*["\']NONE["\'])'
         ),
-        "Insecure Direct Object References (IDOR)": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Insecure Direct Object References (IDOR)": re.compile(
             r'(?i)(?:def\s+\w+\(\s*.*(?:id|user_id|uuid|account_id)\s*\)\s*:.*\n\s*.*(?:select|find|query)\()'
         ),
-        "LDAP Injection": re.compile(
+        "[OWASP A03:2021-Injection] LDAP Injection": re.compile(
             r'(?i)(?:ldap\.search\(|ldap\.search_s\(|InitialDirContext\(\).*(?:search|lookup)).*f?["\'].*\{\w+\}.*["\']'
         ),
-        "XPath Injection": re.compile(
+        "[OWASP A03:2021-Injection] XPath Injection": re.compile(
             r'(?i)(?:\.xpath\(|\.evaluate\(|XPathFactory\.newInstance\(\)).*f?["\'].*\{\w+\}.*["\']'
         ),
-        "Sensitive Data Exposure (Logging Leak)": re.compile(
+        "[OWASP A09:2021-Security Logging and Monitoring Failures] Sensitive Data Exposure (Logging Leak)": re.compile(
             r'(?i)(?:logger\.(?:info|debug|warn|error)\(.*(?:api_key|password|secret|token|passwd|pwd).*\)|System\.out\.print.*(?:password|secret).*)'
         ),
-        "Open Redirect": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Open Redirect": re.compile(
             r'(?i)(?:redirect\(|response\.sendRedirect\(|window\.location\s*=\s*)(?:\w+\s*\+\s*\w+|\w+\.join|f["\'].*\{\w+\}|\w+)'
         ),
-        "Format String Vulnerability": re.compile(
+        "[OWASP A03:2021-Injection] Format String Vulnerability": re.compile(
             r'(?i)(?:printf\(|sprintf\(|format\().*(?:%s|%d).*,\s*(?:\w+\s*\+\s*\w+)'
         ),
-        "Insecure Communication / SSL Verification Disabled": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Insecure Communication / SSL Verification Disabled": re.compile(
             r'(?i)(?:verify\s*=\s*False|verify\s*=\s*false|trustAllCerts|SSLContext\.getInstance\(\s*["\']SSL["\']\)|AllowAllHostnameVerifier)'
         ),
-        "HTTP Parameter Pollution (HPP)": re.compile(
+        "[OWASP A03:2021-Injection] HTTP Parameter Pollution (HPP)": re.compile(
             r'(?i)(?:request\.args\.getlist|request\.query_params\.getlist|getParameterValues)'
         ),
-        "CORS Allow All Config": re.compile(
+        "[OWASP A01:2021-Broken Access Control] CORS Allow All Config": re.compile(
             r'(?i)(?:CORS_ORIGIN_ALLOW_ALL\s*=\s*True|Access-Control-Allow-Origin\s*[:=]\s*["\']\*["\'])'
         ),
-        "Weak Cryptographic Salt / PBKDF2 Iterations": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Weak Cryptographic Salt / PBKDF2 Iterations": re.compile(
             r'(?i)(?:crypt\.pbkdf2|hashlib\.pbkdf2_hmac\(.*,\s*(?:[0-9]{1,3}|[0-9]{1,3}\s*\*\s*[0-9]{1,3})\s*,|bcrypt\.gensalt\(\s*(?:[1-7])\s*\))'
         ),
-        "Weak Pseudo-Random Number Generator (PRNG)": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Weak Pseudo-Random Number Generator (PRNG)": re.compile(
             r'(?i)(?:random\.random\(|random\.randint\(|random\.choice\(|Math\.random\()'
         ),
-        "Code Injection Risk (eval/exec)": re.compile(
+        "[OWASP A03:2021-Injection] Code Injection Risk (eval/exec)": re.compile(
             r'(?i)(?:eval\(|exec\(|Function\(|evalString\()'
         ),
-        "SQL Wildcard Injection": re.compile(
+        "[OWASP A03:2021-Injection] SQL Wildcard Injection": re.compile(
             r'(?i)(?:select\s+.*\s+like\s+.*%|like\s*.*_GET)'
         ),
-        "Missing Function Access Control": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Missing Function Access Control": re.compile(
             r'(?i)(?:@app\.route\(.*method.*post.*\)\s*\n\s*def\s+\w+\(\)\s*:\s*\n\s*(?!@auth|@login_required|@roles_required|check_permission))'
         ),
-        "Insecure HSTS Settings": re.compile(
+        "[OWASP A05:2021-Security Misconfiguration] Insecure HSTS Settings": re.compile(
             r'(?i)(?:Strict-Transport-Security\s*.*max-age=0|HSTS\s*=\s*False)'
         ),
-        "Cookie without SameSite attribute": re.compile(
+        "[OWASP A07:2021-Identification and Authentication Failures] Cookie without SameSite attribute": re.compile(
             r'(?i)(?:set_cookie\(.*samesite\s*=\s*None|SameSite\s*=\s*None)'
         ),
-        "Regex Denial of Service (ReDoS) Risk": re.compile(
+        "[OWASP A05:2021-Security Misconfiguration] Regex Denial of Service (ReDoS) Risk": re.compile(
             r'(?i)(?:re\.compile\(.*(?:\.\*|\.\+)\s*\+|re\.match\(.*(?:\.\*|\.\+)\s*\+)'
         ),
-        "Information Exposure through Exception Details": re.compile(
+        "[OWASP A09:2021-Security Logging and Monitoring Failures] Information Exposure through Exception Details": re.compile(
             r'(?i)(?:traceback\.print_exc\(|print_stack\(|printStackTrace\(\s*\)|e\.toString\(\))'
         ),
-        "Hardcoded Sensitive Keys in Config": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Hardcoded Sensitive Keys in Config": re.compile(
             r'(?i)(?:AWS_SECRET_ACCESS_KEY|STRIPE_API_KEY|GITHUB_TOKEN|SLACK_WEBHOOK_URL)\s*=\s*["\'][a-zA-Z0-9_\-\.\~]{10,}["\']'
         ),
-        "Insecure Temporary File Creation": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Insecure Temporary File Creation": re.compile(
             r'(?i)(?:tempfile\.mktemp\(|mktemp\(|GetTempFileName\(\))'
         ),
-        "Unsafe Java Reflection usage": re.compile(
+        "[OWASP A03:2021-Injection] Unsafe Java Reflection usage": re.compile(
             r'(?i)(?:Class\.forName\(|getDeclaredMethod\(|Method\.invoke\()'
         ),
-        "Weak Cryptographic Key Size": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Weak Cryptographic Key Size": re.compile(
             r'(?i)(?:RSA\.generate\(1024\)|RSA\.generate\(512\)|keySize\s*=\s*1024|keySize\s*=\s*512)'
         ),
-        "Broken Cryptographic Hash / MD4 usage": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Broken Cryptographic Hash / MD4 usage": re.compile(
             r'(?i)(?:hashlib\.new\(\s*["\']md4["\']\s*\)|DigestUtils\.md4Hex)'
         ),
-        "Improper Output Neutralization (Log Injection)": re.compile(
+        "[OWASP A09:2021-Security Logging and Monitoring Failures] Improper Output Neutralization (Log Injection)": re.compile(
             r'(?i)logger\..*\(.*replace\([\'"]\\n[\'"],\s*[\'"][\'"]\)'
         ),
-        "Insecure Cryptographic Padding": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Insecure Cryptographic Padding": re.compile(
             r'(?i)(?:Cipher\.getInstance\(\s*["\'].*/PKCS1Padding["\']|algorithms\.AES\(.*,\s*modes\.ECB\(\s*\)\))'
         ),
-        "Stored or Reflected XSS Input": re.compile(
+        "[OWASP A03:2021-Injection] Stored or Reflected XSS Input": re.compile(
             r'(?i)(?:Markup\(|_GET\[.*\]|_POST\[.*\]|dangerouslySetInnerHTML)'
         ),
-        "Use of Password Hash without Salt": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Use of Password Hash without Salt": re.compile(
             r'(?i)(?:hashlib\.sha256\(\w+\.encode\(\)\)|hashlib\.sha512\(\w+\.encode\(\)\))'
         ),
-        "Insecure Cryptographic Cipher Mode": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Insecure Cryptographic Cipher Mode": re.compile(
             r'(?i)(?:/CBC/PKCS5Padding|/CBC/NoPadding)'
         ),
-        "Hardcoded Credentials in Connection String": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Hardcoded Credentials in Connection String": re.compile(
             r'(?i)(?:mongodb\+srv:\/\/|mysql:\/\/|postgresql:\/\/)[a-zA-Z0-9_\-]+:[a-zA-Z0-9_\-]+@'
         ),
-        "Resource Injection (IP/Port manipulation)": re.compile(
+        "[OWASP A03:2021-Injection] Resource Injection (IP/Port manipulation)": re.compile(
             r'(?i)(?:socket\.connect\(\s*\(\s*_GET|_GET\[[\'"]port[\'"]\])'
         ),
-        "Use of Broken Cryptographic Algorithm RC2": re.compile(
+        "[OWASP A02:2021-Cryptographic Failures] Use of Broken Cryptographic Algorithm RC2": re.compile(
             r'(?i)(?:DigestUtils\.rc2Hex|Cipher\.getInstance\(\s*["\']RC2["\']\))'
         ),
-        "Vulnerable YAML Deserialization": re.compile(
+        "[OWASP A08:2021-Software and Data Integrity Failures] Vulnerable YAML Deserialization": re.compile(
             r'(?i)(?:yaml\.load\(\s*.*?\s*(?:,\s*Loader\s*=\s*yaml\.(?:Loader|UnsafeLoader|FullLoader))?\))'
         ),
-        "Use of Assertions for Access Control Security": re.compile(
+        "[OWASP A01:2021-Broken Access Control] Use of Assertions for Access Control Security": re.compile(
             r'(?i)(?:assert\s+.*hasRole|assert\s+.*isAdmin|assert\s+.*authorized)'
         )
     }
