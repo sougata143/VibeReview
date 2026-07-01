@@ -398,13 +398,57 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                 filepath = os.path.join(root, file)
                 
                 # Check for SCA in dependency config files
-                if file in ["requirements.txt", "pyproject.toml", "uv.lock", "pom.xml", "build.gradle", "package.json"]:
+                is_sca_file = (
+                    file in ["requirements.txt", "pyproject.toml", "uv.lock", "pom.xml", "build.gradle", "package.json",
+                             "build.gradle.kts", "ivy.xml", "build.sbt", "poetry.lock", "Pipfile", "Pipfile.lock",
+                             "setup.py", "setup.cfg", "Package.swift", "Package.resolved", "Podfile", "Podfile.lock",
+                             "Cartfile", "Cartfile.private", "Cartfile.resolved", "go.mod", "go.sum", "Gopkg.lock",
+                             "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock"]
+                    or (file.startswith("requirements-") and file.endswith(".txt"))
+                )
+                if is_sca_file:
                     try:
                         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                             dep_content = f.read()
                             
-                            # Python SCA (requirements.txt / pyproject.toml)
-                            if file in ["requirements.txt", "pyproject.toml", "uv.lock"]:
+                            # 1. License Compliance Checks (Copyleft licenses check)
+                            license_match = re.search(r'(?i)(?:"license"\s*:\s*"([^"]*(?:GPL|AGPL|LGPL|MPL)[^"]*)"|<license>[^<]*(?:GPL|AGPL|LGPL|MPL)[^<]*</license>|license\s*=\s*[\'"]([^\'"]*(?:GPL|AGPL|LGPL|MPL)[^\'"]*)[\'"])', dep_content)
+                            if license_match:
+                                license_name = license_match.group(1) or license_match.group(2)
+                                sca_violations.append({
+                                    "file": filepath,
+                                    "dependency": "multiple",
+                                    "version": "N/A",
+                                    "rule": f"SCA License Risk: Copyleft license '{license_name}' detected. This may require disclosing proprietary source code.",
+                                    "severity": "HIGH"
+                                })
+                                
+                            # 2. Typosquatting/Malicious Package Detection
+                            malicious_libs = ["pythoon", "reqeusts", "lodas", "exprees", "cryptographhy", "django-secure-config"]
+                            for m_lib in malicious_libs:
+                                if m_lib in dep_content.lower():
+                                    sca_violations.append({
+                                        "file": filepath,
+                                        "dependency": m_lib,
+                                        "version": "N/A",
+                                        "rule": f"SCA Malicious Package: Potential typosquatting/dependency confusion attack targeting '{m_lib}'",
+                                        "severity": "CRITICAL"
+                                    })
+                                    
+                            # 3. Outdated/Unmaintained Dependency Tracking
+                            zero_ver_match = re.search(r'(?i)(?:==|:|"|\b)0\.[0-9]+\.[0-9]+', dep_content)
+                            if zero_ver_match:
+                                sca_violations.append({
+                                    "file": filepath,
+                                    "dependency": "multiple",
+                                    "version": zero_ver_match.group(0),
+                                    "rule": f"SCA Outdated Dependency: Pinned to unstable/pre-1.0.0 version '{zero_ver_match.group(0)}'",
+                                    "severity": "INFO"
+                                })
+                            
+                            # 4. Known Vulnerabilities (CVE Identification)
+                            # Python SCA
+                            if file in ["requirements.txt", "pyproject.toml", "uv.lock", "poetry.lock", "Pipfile", "Pipfile.lock", "setup.py", "setup.cfg"] or (file.startswith("requirements-") and file.endswith(".txt")):
                                 for lib, rule in sca_rules.items():
                                     if lib in ["pyjwt", "requests", "django", "flask", "cryptography", "urllib3", "jinja2"]:
                                         if lib in dep_content.lower():
@@ -420,14 +464,14 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                                                         "severity": rule["severity"]
                                                     })
                                             
-                            # Java SCA (pom.xml)
-                            if file == "pom.xml":
+                            # Java SCA
+                            if file in ["pom.xml", "build.gradle", "build.gradle.kts", "ivy.xml", "build.sbt"]:
                                 for lib, rule in sca_rules.items():
                                     if lib in ["log4j-core", "spring-beans", "spring-core", "jackson-databind", "commons-text"]:
                                         if lib in dep_content.lower():
-                                            match = re.search(rf'<artifactId>{lib}</artifactId>\s*<version>([0-9\.]+)</version>', dep_content)
+                                            match = re.search(rf'<artifactId>{lib}</artifactId>\s*<version>([0-9\.]+)</version>|{lib}:([0-9\.]+)', dep_content)
                                             if match:
-                                                version_str = match.group(1)
+                                                version_str = match.group(1) or match.group(2)
                                                 if is_vulnerable(version_str, rule["version"]):
                                                     sca_violations.append({
                                                         "file": filepath,
@@ -437,25 +481,8 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                                                         "severity": rule["severity"]
                                                     })
                                             
-                            # Gradle SCA (build.gradle)
-                            if file == "build.gradle":
-                                for lib, rule in sca_rules.items():
-                                    if lib in ["log4j-core", "spring-beans", "spring-core", "jackson-databind", "commons-text"]:
-                                        if lib in dep_content.lower():
-                                            match = re.search(rf'{lib}:([0-9\.]+)', dep_content)
-                                            if match:
-                                                version_str = match.group(1)
-                                                if is_vulnerable(version_str, rule["version"]):
-                                                    sca_violations.append({
-                                                        "file": filepath,
-                                                        "dependency": lib,
-                                                        "version": version_str,
-                                                        "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
-                                                        "severity": rule["severity"]
-                                                    })
-                                            
-                            # Node.js SCA (package.json)
-                            if file == "package.json":
+                            # Node.js SCA
+                            if file in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock"]:
                                 for lib, rule in sca_rules.items():
                                     if lib in ["lodash", "express", "axios", "jsonwebtoken", "mongoose", "semver"]:
                                         if lib in dep_content.lower():
