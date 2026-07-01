@@ -275,10 +275,37 @@ VibeReview supports two distinct client execution paradigms depending on the env
   ```
 
 #### 🆕 Git Cloning & Codebase Scanning (SAST, SCA, & SonarQube Code Smells)
-VibeReview now supports fully automated remote repository cloning, recursive workspace scanning, and comprehensive vulnerability assessment matching industry standards:
-* **Checkmarx-style SAST:** Automatically flags SQL Injection, Command Injection, Insecure Cryptography (MD5/SHA1 usage), Path Traversal, and XSS (Cross-Site Scripting).
-* **Software Composition Analysis (SCA):** Scans package dependency lists (like `pyproject.toml` or `requirements.txt`) and flags outdated or vulnerable third-party dependencies (such as insecure `pyjwt` or `requests` versions).
-* **SonarQube-style Code Smells:** Identifies empty try/except blocks, broad exception catches, leftover TODO comments, and hardcoded credentials/secrets.
+VibeReview supports fully automated remote repository cloning, recursive workspace scanning, and comprehensive vulnerability assessment matching industry standards:
+
+### 🛡️ Checkmarx-style SAST (OWASP Top 10 Mapped)
+Supports 44 distinct security rules grouped under the official **OWASP Top 10** categories:
+* **A01:2021-Broken Access Control**: Path Traversal Risk, IDOR Vulnerabilities, Open Redirects, CORS Misconfigurations, Missing Function Access Control (Unprotected Routes), Insecure Temporary File Creation, Mass Assignment, Race Conditions / TOCTOU, Use of Assertions for Access Control, and Insecure Intent/WebView/Biometric mobile configurations.
+* **A02:2021-Cryptographic Failures**: Insecure Cryptography (MD5/SHA1 usage), SSL Verification Disabled, Weak Cryptographic Salts (PBKDF2/bcrypt iterations), Insecure PRNGs, Hardcoded Credentials, Weak Cryptographic Key Sizes, Broken Cryptographic Hash (MD4 usage), Insecure Padding, Password Hash without Salt, Insecure Cipher Modes (CBC without integrity), Connection String Credentials, and RC2 Cipher Usage.
+* **A03:2021-Injection**: SQL Injection, Command Injection, Cross-Site Scripting (XSS), NoSQL Injection, LDAP Injection, XPath Injection, Format String Vulnerabilities, HTTP Parameter Pollution (HPP), Code Injection (eval/exec), SQL Wildcard Injection, Unsafe Java Reflection, Expression Language (EL) Injection, Server-Side Template Injection (SSTI), CRLF Injection / Response Splitting, Client-Side Template Injection, Unrestricted File Uploads, Integer Overflow/Wraparound, and Resource Injection (IP/Port manipulation).
+* **A05:2021-Security Misconfiguration**: XML External Entity (XXE) Injection, Clickjacking (XFS), Insecure HSTS Settings, ReDoS Risks, and Production Debug Flags.
+* **A07:2021-Identification and Authentication Failures**: Insecure Session/Cookie Settings, Cookie without SameSite attribute, and Session Fixation.
+* **A08:2021-Software and Data Integrity Failures**: Insecure Deserialization (pickle/marshal) and Vulnerable YAML Deserialization.
+* **A09:2021-Security Logging and Monitoring Failures**: Sensitive Data Exposure (Logging Leaks), Exception Stack Trace Exposure, and Log Injection.
+* **A10:2021-Server-Side Request Forgery (SSRF)**: SSRF params passed directly to HTTP clients.
+
+### 🔍 SonarQube-style Code Smells & Bugs
+Detects 25 maintainability and reliability indicators:
+* **Code Smells (Maintainability)**: Leftover TODO/FIXME Comments, Cognitive/Cyclomatic Complexity, Long Parameter Lists, Naming Convention Violations (e.g. `foo`, `bar`), Dead Code/Commented-out code, Duplicate Imports on one line, Magic Number Usage, Suboptimal Comparisons (e.g. `== True`), Empty Classes/Methods, Cyclic Imports, Encapsulation Violations (Public Fields), God Classes, and Redundant Assignments.
+* **Bugs (Reliability & Safety)**: Empty Exception Handlers, Broad Exception Catch Blocks (`except Exception`), System Exit in Application Code (`sys.exit`), Null Pointer Dereference Hazards, Array or Collection Out-of-Bounds Hazards, Incorrect API Usage, Mathematical Division-by-Zero, and Thread-Safety Violations.
+
+### 📦 Software Composition Analysis (SCA)
+Scans 29 package manifests and lockfiles across key environments:
+* **JVM Ecosystem**: `pom.xml`, `build.gradle`, `build.gradle.kts`, `ivy.xml`, `build.sbt`.
+* **Python Ecosystem**: `requirements.txt`, `requirements-*.txt` (wildcards), `pyproject.toml`, `poetry.lock`, `Pipfile`, `Pipfile.lock`, `setup.py`, `setup.cfg`, `uv.lock`.
+* **Swift & iOS Ecosystem**: `Package.swift`, `Package.resolved`, `Podfile`, `Podfile.lock`, `Cartfile`, `Cartfile.private`, `Cartfile.resolved`.
+* **Go Ecosystem**: `go.mod`, `go.sum`, `Gopkg.lock`.
+* **Node.js/JS Ecosystem**: `package.json`, `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`.
+
+Executes four core check pillars:
+1. **Known Vulnerabilities (CVE Identification)**: Correlates package names and semantic versions against NVD data.
+2. **Malicious Package Detection**: Checks against typosquatting signatures (e.g. `pythoon`, `reqeusts`, `lodas`).
+3. **License Compliance**: Scans for copyleft legal risks (GPL, AGPL, LGPL, MPL).
+4. **Outdated Dependency Tracking**: Flags unmaintained packages pinned to pre-1.0.0 (`0.x.x`) versions.
 
 When provided with a Git/GitHub repository URL and a query, the **Search Agent** will clone it locally to `cloned_repos/` and perform these scans:
 ```bash
