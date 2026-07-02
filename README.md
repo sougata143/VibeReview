@@ -354,11 +354,15 @@ The script will:
 
 ---
 
-## 13. Future Work
+## 13. Completed Advanced Security Upgrades (Phase 1 & 2)
 
-* **Dynamic Sandboxing Gating**: Expand container hooks to execute linting, AST mapping, and dynamic taint tracking inside the sandbox environment.
-* **Multi-Repository Knowledge Graph**: Extend the Spanner Graph MCP connection to support cross-repository dependencies and dependency graphs.
-* **Direct CI Integration**: Implement pre-configured GitHub Actions workflows to invoke VibeReview on open pull requests.
+VibeReview implements the following enterprise-grade security and runtime enhancements:
+* **Dynamic Sandboxing Gating**: Prior to executing code inside the isolated gVisor environment, scripts are compiled to AST to enforce syntax linting (e.g. banning empty `except: pass` handlers), check prohibited function lists (`eval`, `exec`), and trace taint propagation from sources (`sys.argv`, `input()`, `open()`) to dangerous sinks (`subprocess.run()`, `os.system()`). Unsanitized inputs automatically trigger self-repair loops.
+* **Multi-Repository Knowledge Graph**: The Spanner Graph GQL queries and traversals resolve cross-repository dependencies recursively inside `cloned_repos/`, mapping call graphs and imports (`DEPENDS_ON`, `CALLS`) across sibling codebases.
+* **Direct CI Integration**: Pre-configured GitHub Actions workflows (`.github/workflows/vibereview.yml`) invoke VibeReview automatically on pull requests to stage PR summaries directly as comments.
+* **Egress Governance**: A static network checker (`EgressVisitor`) scans execution flows to restrict tool access to whitelisted endpoints (e.g. `nvd.nist.gov`, `github.com`) and block unapproved dynamic external connections.
+* **Durable Session Memory Bank**: Wire-configured Google Cloud Agent Runtime deployments expose `receive_webhook` for automated event triggers. The agent uses Vertex AI Session Service and Memory Bank to persist trajectories and facts across multi-PR refactors.
+* **Cryptographic Hardware MFA approval**: A verification tool (`approve_vibe_diff_with_mfa`) validates WebAuthn/FIDO2 hardware security key signatures on Vibe Diff changes to prevent unauthorized code merges.
 
 ---
 
