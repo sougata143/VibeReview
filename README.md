@@ -91,8 +91,8 @@ VibeReview maps the continuous audit lifecycle across five sequential sub-agents
 ```
 
 1. **Search Agent (gemini-3.1-flash-lite)**: Connects to the Spanner Graph MCP server to locate target files using structural query traversals.
-2. **Story Agent (gemini-3.1-pro-preview)**: Parses active requirements, specifications, and issues to extract functional standards. Routes to the more capable Pro reasoning model for high-fidelity narrative synthesis.
-3. **Impact Agent (gemini-3.1-pro-preview)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload. Routes to the Pro model for accurate multi-file blast-radius analysis.
+2. **Story Agent (gemini-3.1-flash-lite)**: Parses active requirements, specifications, and issues to extract functional standards.
+3. **Impact Agent (gemini-3.1-flash-lite)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload.
 4. **Task-Breakdown Agent (gemini-3.1-flash-lite)**: Partitions finding summaries into sequenced, atomic task logs.
 5. **Coding Agent (gemini-3.1-flash-lite)**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree (strictly limited to pre-approved `Card`, `List`, `Text`, and `Button` primitives from the `BasicCatalog` v0.9).
 
