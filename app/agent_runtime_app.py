@@ -111,6 +111,34 @@ def format_hybrid_response(raw_text: str) -> dict:
 class AgentEngineApp(AdkApp):
     def set_up(self) -> None:
         """Initialize the agent engine app with logging and telemetry."""
+        # 1. Custom OpenTelemetry configuration for Glass Box Observability & Tail-Based Sampling
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
+        from app.telemetry import TailBasedSamplingProcessor, ObservabilityPlugin
+
+        # Create global TracerProvider
+        provider = TracerProvider()
+        # Use ConsoleSpanExporter as downstream exporter to capture trace details
+        console_exporter = ConsoleSpanExporter()
+        downstream_processor = SimpleSpanProcessor(console_exporter)
+        
+        # Instantiate tail-based sampling processor
+        self.tail_sampler = TailBasedSamplingProcessor(downstream_processor)
+        provider.add_span_processor(self.tail_sampler)
+
+        # Set the global tracer provider safely (avoiding override exceptions in multi-run contexts)
+        if "Proxy" in type(trace.get_tracer_provider()).__name__:
+            trace.set_tracer_provider(provider)
+            logging.info("Registered global TracerProvider with TailBasedSamplingProcessor.")
+        else:
+            logging.warning("TracerProvider already configured; custom tail-sampler may not receive all spans.")
+
+        # Register ObservabilityPlugin for agent.think and agent.tool span hooks
+        if not any(isinstance(p, ObservabilityPlugin) for p in adk_app.plugins):
+            adk_app.plugins.append(ObservabilityPlugin())
+            logging.info("ObservabilityPlugin registered successfully.")
+
         vertexai.init()
         setup_telemetry()
         super().set_up()
@@ -153,23 +181,42 @@ class AgentEngineApp(AdkApp):
         run_config: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> AsyncIterable[Dict[str, Any]]:
+        from opentelemetry import trace, context as otel_context
+        tracer = trace.get_tracer("vibe-review-tracer")
+        
+        span = tracer.start_span("agent.session")
+        if session_id:
+            span.set_attribute("session.id", session_id)
+        if user_id:
+            span.set_attribute("user.id", user_id)
+            
+        token = otel_context.attach(trace.set_span_in_context(span))
+        
         accumulated_text = ""
         events_list = []
         
-        async for event in super().async_stream_query(
-            message=message,
-            user_id=user_id,
-            session_id=session_id,
-            session_events=session_events,
-            run_config=run_config,
-            **kwargs
-        ):
-            events_list.append(event)
-            content = event.get("content")
-            if content and "parts" in content:
-                for part in content["parts"]:
-                    if "text" in part and part["text"]:
-                        accumulated_text += part["text"]
+        try:
+            async for event in super().async_stream_query(
+                message=message,
+                user_id=user_id,
+                session_id=session_id,
+                session_events=session_events,
+                run_config=run_config,
+                **kwargs
+            ):
+                events_list.append(event)
+                content = event.get("content")
+                if content and "parts" in content:
+                    for part in content["parts"]:
+                        if "text" in part and part["text"]:
+                            accumulated_text += part["text"]
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(trace.StatusCode.ERROR, str(e))
+            raise
+        finally:
+            otel_context.detach(token)
+            span.end()
         
         if accumulated_text:
             formatted_dict = format_hybrid_response(accumulated_text)
@@ -204,22 +251,41 @@ class AgentEngineApp(AdkApp):
         run_config: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
+        from opentelemetry import trace, context as otel_context
+        tracer = trace.get_tracer("vibe-review-tracer")
+        
+        span = tracer.start_span("agent.session")
+        if session_id:
+            span.set_attribute("session.id", session_id)
+        if user_id:
+            span.set_attribute("user.id", user_id)
+            
+        token = otel_context.attach(trace.set_span_in_context(span))
+        
         accumulated_text = ""
         events_list = []
         
-        for event in super().stream_query(
-            message=message,
-            user_id=user_id,
-            session_id=session_id,
-            run_config=run_config,
-            **kwargs
-        ):
-            events_list.append(event)
-            content = event.get("content")
-            if content and "parts" in content:
-                for part in content["parts"]:
-                    if "text" in part and part["text"]:
-                        accumulated_text += part["text"]
+        try:
+            for event in super().stream_query(
+                message=message,
+                user_id=user_id,
+                session_id=session_id,
+                run_config=run_config,
+                **kwargs
+            ):
+                events_list.append(event)
+                content = event.get("content")
+                if content and "parts" in content:
+                    for part in content["parts"]:
+                        if "text" in part and part["text"]:
+                            accumulated_text += part["text"]
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(trace.StatusCode.ERROR, str(e))
+            raise
+        finally:
+            otel_context.detach(token)
+            span.end()
                         
         if accumulated_text:
             formatted_dict = format_hybrid_response(accumulated_text)
@@ -256,3 +322,4 @@ agent_runtime = AgentEngineApp(
         else InMemoryArtifactService()
     ),
 )
+

@@ -123,6 +123,10 @@ graph TD
 * **ContextResolver**: Runs regex masking on raw inputs to replace sensitive customer data, IP addresses, and API credentials with placeholder tokens (`[[EMAIL_1]]`) before sending inputs to model inference.
 * **Unmasking Gateway**: Restores the actual values only after execution has completed and the results are ready to be deployed locally.
 
+### D. Glass Box Observability & Tail-Based Sampling
+* **Granular Observability Spans**: OpenTelemetry hooks capture granular pipeline details across `agent.session` (session/query lifecycles), `agent.think` (agent decision processes), and `agent.tool` (tool execution and API call latencies).
+* **Tail-Based Sampling Sampler**: Buffers traces in-memory. Evaluates them after completion and drops routine successful traces to reduce storage costs, but strictly retains any traces containing errors, policy violations (RBAC block/session quarantine), or excessive self-repair loops ($\ge 3$ sandbox/model executions).
+
 ---
 
 ## 8. Technologies Used
