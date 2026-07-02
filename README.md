@@ -227,16 +227,20 @@ Open `.env` in your editor and configure the following variables:
 * `SPANNER_INSTANCE` & `SPANNER_DATABASE`: Spanner parameters.
 
 ### Step 4: Run Verification Tests
-VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, Policy Server, and active integration:
+VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, Policy Server, AaaS card packaging, and active UI Canvas integration:
 ```bash
 # Run unit tests locally (runs offline with mocked Google auth credentials)
 .venv/bin/pytest tests/unit
 
 # Run integration tests (requires GOOGLE_API_KEY in .env, runs against AI Studio)
 .venv/bin/pytest tests/integration
+
+# Run Playwright visual & behavioral UI canvas tests
+.venv/bin/pytest tests/integration/test_canvas_ui.py
 ```
 
 * **Offline Execution**: The unit test suite (`pytest tests/unit`) runs fully offline and resolves dummy credentials automatically. Evaluators do not need active GCP access keys to verify the core teaming and quarantine engines.
+* **Playwright UI Testing**: The `tests/integration/test_canvas_ui.py` integration test suite automatically starts a mock FastAPI server, launches Chromium in headless sandbox mode, and interacts with the dashboard components to verify Stateful Quarantine modals and Vibe Diff MFA approvals without requiring external logins.
 
 ### Step 5: Run Offline Evaluation Grading
 To test the agent's trajectory quality, safety compliance, and task success across all BDD scenarios without needing active Vertex AI API keys, execute the evaluation pipeline locally:
