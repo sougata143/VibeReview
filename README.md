@@ -334,6 +334,20 @@ When provided with a Git/GitHub repository URL and a query, the **Search Agent**
 If you are running the interactive playground (`.venv/bin/agents-cli playground`), you can copy and paste the following prompt to test the scanning features:
 > "Clone the repository `https://github.com/octocat/Spoon-Knife.git`. Run an automated security scan on it: perform Checkmarx-style SAST checks (SQL/command injection, weak cryptography, path traversal), Checkmarx-style SCA checks (outdated/vulnerable dependencies), and SonarQube-style Code Smell audits (empty catches, hardcoded secrets). Summarize all violations found."
 
+### Step 8: Package & Publish AaaS Agent Card
+To validate the `agent_card.json`, package the agent code, and register the A2A endpoint with the Gemini Enterprise Agent Registry:
+```bash
+# Run packaging and registration in dry-run mode
+OFFLINE_DRY_RUN=true ./publish_agent.sh
+
+# Run actual publication to the registry
+./publish_agent.sh
+```
+The script will:
+1. Validate `app/agent_card.json` against the A2A protocol schema.
+2. Package the source code into `dist/vibe-review-package.zip`.
+3. Call `agents-cli publish gemini-enterprise` to register the agent in the Gemini Enterprise Agent Registry.
+
 ---
 
 ## 13. Future Work
