@@ -231,6 +231,100 @@ HTML_TEMPLATE = """
             backdrop-filter: blur(12px);
         }
 
+        /* Vulnerability Report Table */
+        .vuln-report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+        
+        .vuln-report-table th, .vuln-report-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .vuln-report-table th {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            font-weight: 700;
+        }
+        
+        .vuln-report-table td {
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        
+        /* Severity Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .badge-critical {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid #ef4444;
+        }
+        
+        .badge-high {
+            background-color: rgba(249, 115, 22, 0.2);
+            color: #fed7aa;
+            border: 1px solid #f97316;
+        }
+        
+        .badge-medium {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #fef3c7;
+            border: 1px solid #f59e0b;
+        }
+        
+        .badge-low {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #dbeafe;
+            border: 1px solid #3b82f6;
+        }
+        
+        .code-location {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: #38bdf8;
+            font-size: 0.85rem;
+        }
+        
+        /* Clean Build Shield Card */
+        .clean-build-card {
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .clean-build-icon {
+            font-size: 3.5rem;
+            color: var(--success);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
         /* Rendered components styling */
         .a2ui-container {
             display: flex;
@@ -501,6 +595,17 @@ pass
             }
         });
 
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function renderDashboard(response) {
             const root = document.getElementById('a2ui-root');
             root.innerHTML = ''; // Clear previous
@@ -522,42 +627,75 @@ pass
             // Subtitle
             const subtitle = document.createElement('p');
             subtitle.style.color = 'var(--text-secondary)';
-            subtitle.style.margin = '0';
+            subtitle.style.margin = '0 0 1rem 0';
             subtitle.innerText = `Generative A2UI Surface ID: ${updateComponents.surfaceId || 'vibe-review-surface'}`;
             root.appendChild(subtitle);
 
-            // 2. Render Card with Vulnerability List
-            const cardElem = document.createElement('div');
-            cardElem.className = 'a2ui-card';
+            // 2. Render parsed vulnerabilities or Clean Build shield
+            const parsedVulns = data.parsed_vulnerabilities || [];
 
-            const listHeader = document.createElement('h3');
-            listHeader.style.margin = '0 0 0.8rem 0';
-            listHeader.innerText = data.vulnerabilities_found ? '⚠️ Identified Vulnerabilities' : '✅ No Flaws Identified';
-            cardElem.appendChild(listHeader);
-
-            const listComp = components.find(c => c.type === 'List');
-            const vulnerabilities = listComp ? (listComp.items || listComp.properties?.items) : [];
-            const activeVulnerabilities = vulnerabilities.filter(v => v && !v.toLowerCase().includes("low risk"));
-
-            if (activeVulnerabilities && activeVulnerabilities.length > 0) {
-                const listElem = document.createElement('ul');
-                listElem.className = 'a2ui-list';
-                activeVulnerabilities.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'a2ui-list-item';
-                    li.innerText = item;
-                    listElem.appendChild(li);
+            if (parsedVulns.length > 0) {
+                const reportCard = document.createElement('div');
+                reportCard.className = 'a2ui-card';
+                
+                const cardHeader = document.createElement('h3');
+                cardHeader.style.margin = '0 0 0.8rem 0';
+                cardHeader.innerText = '🛡️ Vulnerability Scan Report';
+                reportCard.appendChild(cardHeader);
+                
+                // Create table
+                const table = document.createElement('table');
+                table.className = 'vuln-report-table';
+                
+                // Table structure
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Vulnerability Type</th>
+                            <th style="width: 15%;">Severity</th>
+                            <th style="width: 20%;">File Location</th>
+                            <th style="width: 40%;">Details / Code Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                `;
+                
+                const tbody = table.querySelector('tbody');
+                parsedVulns.forEach(v => {
+                    const tr = document.createElement('tr');
+                    
+                    const sevLower = v.severity.toLowerCase();
+                    let badgeClass = 'badge-low';
+                    if (sevLower === 'critical') badgeClass = 'badge-critical';
+                    else if (sevLower === 'high') badgeClass = 'badge-high';
+                    else if (sevLower === 'medium') badgeClass = 'badge-medium';
+                    
+                    tr.innerHTML = `
+                        <td style="font-weight: 600; color: var(--text);">${escapeHtml(v.type)}</td>
+                        <td><span class="badge ${badgeClass}">${escapeHtml(v.severity)}</span></td>
+                        <td><span class="code-location">${escapeHtml(v.file)}</span></td>
+                        <td style="font-family: monospace; font-size: 0.85rem; color: #38bdf8; word-break: break-all;">${escapeHtml(v.code)}</td>
+                    `;
+                    tbody.appendChild(tr);
                 });
-                cardElem.appendChild(listElem);
+                
+                reportCard.appendChild(table);
+                root.appendChild(reportCard);
             } else {
-                const safeMsg = document.createElement('p');
-                safeMsg.style.color = 'var(--success)';
-                safeMsg.style.fontWeight = '600';
-                safeMsg.innerText = '✅ No security issues, taint-flow bugs, or egress violations detected in files.';
-                cardElem.appendChild(safeMsg);
+                // Clean build layout
+                const cleanCard = document.createElement('div');
+                cleanCard.className = 'clean-build-card';
+                
+                cleanCard.innerHTML = `
+                    <div class="clean-build-icon">🛡️</div>
+                    <h2 style="margin: 0; color: var(--success); font-weight: 800; font-size: 1.5rem; letter-spacing: -0.01em;">CLEAN BUILD — GATEWAYS SECURED</h2>
+                    <p style="margin: 0; color: var(--text-secondary); max-width: 500px; font-size: 0.95rem; line-height: 1.5;">
+                        No SAST vulnerabilities, SCA package flaws, or SonarQube code smells have been flagged. All AST policies, taint check paths, and quarantine gates passed successfully.
+                    </p>
+                `;
+                root.appendChild(cleanCard);
             }
-
-            root.appendChild(cardElem);
 
             // 2b. Render Raw Agent Output
             if (data.raw_output) {
