@@ -1,0 +1,68 @@
+{
+  "name": "vibe-review",
+  "description": "Continuous graph-native continuous code auditor that executes static analysis (SAST), composition scanning (SCA), and code smell/bug audits in isolated sandboxes.",
+  "version": "1.0.0",
+  "url": "https://vibe-review.us-central1.run.app/a2a",
+  "preferred_transport": "HTTP+JSON",
+  "protocol_version": "0.3.0",
+  "default_input_modes": [
+    "text/plain"
+  ],
+  "default_output_modes": [
+    "application/json",
+    "text/plain"
+  ],
+  "supports_authenticated_extended_card": false,
+  "provider": {
+    "organization": "VibeReview Security",
+    "url": "https://vibe-review.org"
+  },
+  "capabilities": {
+    "push_notifications": false,
+    "state_transition_history": false,
+    "streaming": true,
+    "extensions": []
+  },
+  "security_schemes": {
+    "spiffe-auth": {
+      "type": "http",
+      "scheme": "Bearer",
+      "bearer_format": "JWT",
+      "description": "Secured via cryptographically verifiable SPIFFE IDs. Enforces Zero Ambient Authority through Just-In-Time (JIT) token downscoping scoped to exact database/repository scopes with instant expiration."
+    }
+  },
+  "security": [
+    {
+      "spiffe-auth": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "continuous-code-auditing",
+      "name": "Continuous Code Auditing",
+      "description": "Runs Checkmarx-style SAST checks (44 rules including OWASP Top 10 Injection, Path Traversal, and Insecure Crypto), SCA composition checks (29 package manifests/CVE lookup), and SonarQube-style Code Smell audits (25 maintainability/reliability bugs) in ephemeral gVisor sandboxes.",
+      "examples": [
+        "Clone the repository https://github.com/octocat/Spoon-Knife.git and scan files for SQL injection vulnerabilities.",
+        "Perform a composition scan on this project's requirements.txt and package.json to identify CVEs and license compliance risks."
+      ],
+      "tags": [
+        "sast",
+        "sca",
+        "code-smell",
+        "code-audit",
+        "security-compliance"
+      ],
+      "input_modes": [
+        "text/plain"
+      ],
+      "output_modes": [
+        "application/json"
+      ],
+      "security": [
+        {
+          "spiffe-auth": []
+        }
+      ]
+    }
+  ]
+}
