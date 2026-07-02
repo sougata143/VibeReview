@@ -14,6 +14,39 @@ def execute_sandbox(command: str) -> dict:
     Args:
         command: The shell command to run in the local environment sandbox.
     """
+    import re
+    import os
+    from app.sandbox_gating import validate_code
+
+    # 1. Check for Python script executions in the command
+    python_files = re.findall(r'\b([\w\-./]+\.py)\b', command)
+    for py_file in python_files:
+        if os.path.exists(py_file):
+            try:
+                with open(py_file, 'r', encoding='utf-8') as f:
+                    code = f.read()
+                gating_errors = validate_code(code, py_file)
+                if gating_errors:
+                    return {
+                        "status": "failed_gating",
+                        "error": f"Dynamic Sandboxing Gating Blocked Execution on '{py_file}' due to security/lint checks.",
+                        "gating_errors": gating_errors
+                    }
+            except Exception as e:
+                pass
+
+    # 2. Check for inline python scripts (-c "...")
+    inline_match = re.search(r'python3?\s+-c\s+["\'](.*?)["\']', command)
+    if inline_match:
+        inline_code = inline_match.group(1)
+        gating_errors = validate_code(inline_code, "<inline>")
+        if gating_errors:
+            return {
+                "status": "failed_gating",
+                "error": "Dynamic Sandboxing Gating Blocked Execution on inline script due to security/lint checks.",
+                "gating_errors": gating_errors
+            }
+
     try:
         res = subprocess.run(
             command,

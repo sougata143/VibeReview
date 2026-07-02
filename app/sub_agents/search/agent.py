@@ -61,12 +61,13 @@ def clone_github_repo(repo_url: str, local_path: str = "cloned_repos/demo_repo")
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
-def query_spanner_graph(query: str, search_path: str = None) -> dict:
+def query_spanner_graph(query: str, search_path: str = None, gql_query: str = None) -> dict:
     """Scans local code files recursively for keywords, SAST/SCA vulnerabilities, and SonarQube code smells.
     
     Args:
         query: The search term or pattern to look for.
         search_path: Optional path to scan. Defaults to the cloned repository path or local workspace.
+        gql_query: Optional GQL query string for Spanner Graph.
     """
     import re
     # Resolve search directory
@@ -535,15 +536,89 @@ def query_spanner_graph(query: str, search_path: str = None) -> dict:
                 except Exception:
                     continue
                     
+        # Resolve cross-repository dependencies if GQL query or cross-repo search is requested
+        cross_repo_dependencies = []
+        if gql_query or (query and any(x in query.lower() for x in ["cross-repo", "dependency", "dependencies", "call map"])):
+            repos_dir = "cloned_repos"
+            repo_names = []
+            if os.path.exists(repos_dir):
+                repo_names = [d for d in os.listdir(repos_dir) if os.path.isdir(os.path.join(repos_dir, d))]
+            # Include local repo as vibe-review
+            repo_names.append("vibe-review")
+            
+            # Map of defined functions per repository to trace CALLS edges in GQL
+            defined_functions = {}
+            for r_name in repo_names:
+                r_path = os.path.join(repos_dir, r_name) if r_name != "vibe-review" else "."
+                defined_functions[r_name] = []
+                if not os.path.exists(r_path):
+                    continue
+                for root, dirs, files in os.walk(r_path):
+                    dirs[:] = [d for d in dirs if d not in ignore_dirs]
+                    for file in files:
+                        if file.endswith(".py"):
+                            f_path = os.path.join(root, file)
+                            try:
+                                with open(f_path, "r", errors="ignore") as f:
+                                    content = f.read()
+                                # Simple regex to find defined functions: def func_name(...)
+                                funcs = re.findall(r'\bdef\s+(\w+)\s*\(', content)
+                                defined_functions[r_name].extend(funcs)
+                            except Exception:
+                                pass
+            
+            # Trace imports and function calls across repositories
+            for r_name in repo_names:
+                r_path = os.path.join(repos_dir, r_name) if r_name != "vibe-review" else "."
+                if not os.path.exists(r_path):
+                    continue
+                for root, dirs, files in os.walk(r_path):
+                    dirs[:] = [d for d in dirs if d not in ignore_dirs]
+                    for file in files:
+                        if file.endswith(".py"):
+                            f_path = os.path.join(root, file)
+                            try:
+                                with open(f_path, "r", errors="ignore") as f:
+                                    content = f.read()
+                                
+                                # 1. Check direct imports of sibling repositories
+                                for other_r in repo_names:
+                                    if other_r == r_name:
+                                        continue
+                                    if re.search(rf'\b(?:import|from)\s+{other_r}\b', content):
+                                        cross_repo_dependencies.append({
+                                            "source_node": f"Repository({r_name})",
+                                            "target_node": f"Repository({other_r})",
+                                            "edge_type": "DEPENDS_ON",
+                                            "details": f"File '{file}' in repository '{r_name}' imports repository '{other_r}'."
+                                        })
+                                        
+                                # 2. Check function calls targeting functions defined in other repos
+                                for other_r, other_funcs in defined_functions.items():
+                                    if other_r == r_name:
+                                        continue
+                                    for func in other_funcs:
+                                        if re.search(rf'\b{func}\s*\(', content):
+                                            cross_repo_dependencies.append({
+                                                "source_node": f"Function({r_name}.{file}:{func})",
+                                                "target_node": f"Function({other_r}:{func})",
+                                                "edge_type": "CALLS",
+                                                "details": f"Function call to '{func}' maps across repositories from '{r_name}' to '{other_r}'."
+                                            })
+                            except Exception:
+                                pass
+
         return {
             "status": "success",
             "search_path": os.path.abspath(search_path),
             "query": query,
+            "gql_query": gql_query,
             "matches_found": len(matches),
             "results": matches[:20],
             "sast_violations": sast_violations,
             "sca_violations": sca_violations,
-            "code_smells": code_smells
+            "code_smells": code_smells,
+            "cross_repo_dependencies": cross_repo_dependencies
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}

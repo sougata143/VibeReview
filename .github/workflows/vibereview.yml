@@ -1,0 +1,75 @@
+name: VibeReview PR Auditor
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  audit:
+    name: Code Security Audit
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-level: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Install other requirements or local package dependencies
+          pip install google-adk google-genai opentelemetry-api opentelemetry-sdk pydantic pyjwt mcp gcsfs fastapi uvicorn PyYAML
+
+      - name: Execute VibeReview Security Auditor
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          INTEGRATION_TEST: 'TRUE'
+        run: |
+          python run_standalone.py "Scan the modified pull request changes for OWASP Top 10 vulnerabilities, license copyleft risks, and code smells."
+
+      - name: Post Security Report to Pull Request
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'pr_security_report.md';
+            if (fs.existsSync(path)) {
+              const body = fs.readFileSync(path, 'utf8');
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              const botComment = comments.find(comment => 
+                comment.body.includes('VibeReview Automated Security Audit Report')
+              );
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: body
+                });
+              }
+            } else {
+              console.log('No security report file found.');
+            }
