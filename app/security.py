@@ -13,6 +13,7 @@ from google.adk.plugins.base_plugin import BasePlugin
 from google.adk.tools import BaseTool, ToolContext
 from typing import Any, Optional
 from app.config import Config
+from app.app_utils.auto_remediation import _engine as _remediation_engine
 
 class SecurityAnomalyException(Exception):
     """Raised when a security anomaly is detected by the Blue/Green Team.
@@ -69,10 +70,18 @@ class RedBlueGreenSecurityPlugin(BasePlugin):
                     tool_context.state["remediation_triggered"] = True
                     tool_context.state["offending_tool"] = tool.name
                     tool_context.state["offending_args"] = tool_args
-                    
-                    # Simulates the Green Team's auto-refactoring/remediation action
-                    tool_context.state["remediated_script"] = "# Sanitized by Green Team Auto-Refactoring\npass"
-                    
+
+                    # Autonomous Remediation Feedback Loop: pass offending payload to code-fixing model
+                    insecure_snippet = str(val)
+                    error_trace = f"Blue Team detected adversarial payload in tool '{tool.name}': {val!r}"
+                    vibe_diff_payload = await _remediation_engine.remediate(
+                        insecure_code=insecure_snippet,
+                        error_trace=error_trace,
+                        context=f"tool={tool.name}",
+                    )
+                    tool_context.state["vibe_diff"] = vibe_diff_payload
+                    tool_context.state["remediated_script"] = vibe_diff_payload.get("patched_code", "# Sanitized\npass")
+
                     raise SecurityAnomalyException(f"Security Anomaly: Blocked execution of anomalous input: '{val}'")
                     
         # 3. Structural & Semantic Gating via PolicyServer

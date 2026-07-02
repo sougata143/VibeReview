@@ -61,6 +61,57 @@ def clone_github_repo(repo_url: str, local_path: str = "cloned_repos/demo_repo")
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
+import hashlib
+import asyncio
+from app.app_utils.microtransactions import L402PaymentHandler
+
+async def query_premium_cve_database(library: str, headers: dict = None) -> dict:
+    """Queries a premium vulnerability/CVE database API.
+    
+    If headers do not contain a valid L402 payment proof, it returns an HTTP 402 error.
+    """
+    if not headers or "Authorization" not in headers or not headers["Authorization"].startswith("L402 "):
+        return {
+            "status_code": 402,
+            "headers": {
+                "WWW-Authenticate": 'L402 token="premium_cve_macaroon_secret", invoice="lnbc_premium_cve_invoice_100_sats"'
+            }
+        }
+    auth_val = headers["Authorization"]
+    token, preimage = auth_val.replace("L402 ", "").split(":")
+    expected_preimage = hashlib.sha256("lnbc_premium_cve_invoice_100_sats".encode('utf-8')).hexdigest()
+    if token == "premium_cve_macaroon_secret" and preimage == expected_preimage:
+        return {
+            "status_code": 200,
+            "cve": "CVE-2026-PREMIUM-X",
+            "name": f"Premium Zero-Day vulnerability in {library}",
+            "severity": "CRITICAL"
+        }
+    return {"status_code": 401, "body": "Invalid payment proof"}
+
+def fetch_premium_cve(library: str) -> dict:
+    """Autonomous L402 client retry handler for premium vulnerability database queries."""
+    handler = L402PaymentHandler()
+    async def make_call(headers=None):
+        return await query_premium_cve_database(library, headers=headers)
+    try:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = None
+            
+        if loop and loop.is_running():
+            import threading
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(lambda: asyncio.run(handler.handle_402_retry(make_call)))
+                res = future.result()
+        else:
+            res = asyncio.run(handler.handle_402_retry(make_call))
+        return res
+    except Exception:
+        return {}
+
 def query_spanner_graph(query: str, search_path: str = None, gql_query: str = None) -> dict:
     """Scans local code files recursively for keywords, SAST/SCA vulnerabilities, and SonarQube code smells.
     
@@ -465,6 +516,17 @@ def query_spanner_graph(query: str, search_path: str = None, gql_query: str = No
                                                         "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
                                                         "severity": rule["severity"]
                                                     })
+                                                    
+                                                    # Query premium CVE database with x402 auto-payment retry logic
+                                                    premium_res = fetch_premium_cve(lib)
+                                                    if premium_res and premium_res.get("status_code") == 200:
+                                                        sca_violations.append({
+                                                            "file": filepath,
+                                                            "dependency": lib,
+                                                            "version": version_str,
+                                                            "rule": f"SCA Premium Zero-Day: {premium_res['name']} ({premium_res['cve']}) via L402 AP2",
+                                                            "severity": premium_res["severity"]
+                                                        })
                                             
                             # Java SCA
                             if file in ["pom.xml", "build.gradle", "build.gradle.kts", "ivy.xml", "build.sbt"]:
@@ -482,6 +544,17 @@ def query_spanner_graph(query: str, search_path: str = None, gql_query: str = No
                                                         "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
                                                         "severity": rule["severity"]
                                                     })
+                                                    
+                                                    # Query premium CVE database with x402 auto-payment retry logic
+                                                    premium_res = fetch_premium_cve(lib)
+                                                    if premium_res and premium_res.get("status_code") == 200:
+                                                        sca_violations.append({
+                                                            "file": filepath,
+                                                            "dependency": lib,
+                                                            "version": version_str,
+                                                            "rule": f"SCA Premium Zero-Day: {premium_res['name']} ({premium_res['cve']}) via L402 AP2",
+                                                            "severity": premium_res["severity"]
+                                                        })
                                             
                             # Node.js SCA
                             if file in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock"]:
@@ -499,6 +572,17 @@ def query_spanner_graph(query: str, search_path: str = None, gql_query: str = No
                                                         "rule": f"SCA Vulnerable Dependency: {rule['name']} ({rule['cve']})",
                                                         "severity": rule["severity"]
                                                     })
+                                                    
+                                                    # Query premium CVE database with x402 auto-payment retry logic
+                                                    premium_res = fetch_premium_cve(lib)
+                                                    if premium_res and premium_res.get("status_code") == 200:
+                                                        sca_violations.append({
+                                                            "file": filepath,
+                                                            "dependency": lib,
+                                                            "version": version_str,
+                                                            "rule": f"SCA Premium Zero-Day: {premium_res['name']} ({premium_res['cve']}) via L402 AP2",
+                                                            "severity": premium_res["severity"]
+                                                        })
                     except Exception:
                         pass
                 

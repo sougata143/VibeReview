@@ -30,7 +30,7 @@ def create_impact_agent() -> Agent:
     return Agent(
         name="impact_agent",
         model=Gemini(
-            model=Config.DEFAULT_MODEL,
+            model=Config.PRO_MODEL,
             retry_options=types.HttpRetryOptions(attempts=6, initial_delay=6.0)
         ),
         instruction=instruction,

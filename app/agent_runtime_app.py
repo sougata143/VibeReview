@@ -179,10 +179,18 @@ class AgentEngineApp(AdkApp):
         
         logging.info(f"Received webhook for PR #{pr_number}: {pr_title} in repo {repository}")
         
-        # Trigger the ADK pipeline to audit the code changes
-        prompt = f"Audit PR #{pr_number} in repository {repository}. Title: {pr_title}"
+        # Extract repository name to establish durable sessions across multi-PR refactors in the same repository
+        repo_name = repository.split("/")[-1].replace(".git", "") if repository else "default-repo"
+        session_id = f"repo-session-{repo_name}"
+        
+        # Trigger the ADK pipeline, explicitly requesting the code-check skill activation
+        prompt = (
+            f"Please run a security code audit on PR #{pr_number} in repository {repository}. "
+            f"Title: {pr_title}. Apply the 'code-check' skill to identify critical vulnerabilities "
+            f"and logic errors."
+        )
         results = []
-        async for event in self.async_stream_query(message=prompt, user_id=f"webhook-PR-{pr_number}"):
+        async for event in self.async_stream_query(message=prompt, user_id=session_id):
             results.append(event)
             
         return {

@@ -5,6 +5,7 @@
 import ast
 import re
 from typing import List
+from app.app_utils.auto_remediation import request_remediation_sync
 
 class GatingVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -165,3 +166,41 @@ def validate_code(code: str, filename: str = "sandbox_code.py") -> List[str]:
     errors.extend(egress_visitor.errors)
 
     return errors
+
+
+def validate_and_remediate(
+    code: str,
+    filename: str = "sandbox_code.py",
+    context: str = "",
+) -> dict:
+    """Gate the code through AST checks, then autonomously remediate on violations.
+
+    This is the Tier 3 entry-point that combines:
+    1. ``validate_code`` – lint, AST map, taint-track, egress governance.
+    2. ``request_remediation_sync`` – if violations found, invoke the Green Team
+       Autonomous Remediation Engine to rewrite the flagged code and produce
+       a Vibe Diff payload for human approval.
+
+    Returns a dict:
+        ``passed``       – True if no violations found.
+        ``errors``       – List of raw violation strings from validate_code.
+        ``vibe_diff``    – Full Vibe Diff payload dict (or None if clean).
+    """
+    errors = validate_code(code, filename)
+
+    if not errors:
+        return {"passed": True, "errors": [], "vibe_diff": None}
+
+    # Build a human-readable error trace for the remediation prompt
+    error_trace = "\n".join(f"  [{i+1}] {e}" for i, e in enumerate(errors))
+    vibe_diff_payload = request_remediation_sync(
+        insecure_code=code,
+        error_trace=error_trace,
+        context=context or filename,
+    )
+
+    return {
+        "passed": False,
+        "errors": errors,
+        "vibe_diff": vibe_diff_payload,
+    }

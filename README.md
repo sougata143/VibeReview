@@ -91,8 +91,8 @@ VibeReview maps the continuous audit lifecycle across five sequential sub-agents
 ```
 
 1. **Search Agent (gemini-3.1-flash-lite)**: Connects to the Spanner Graph MCP server to locate target files using structural query traversals.
-2. **Story Agent (gemini-3.1-flash-lite)**: Parses active requirements, specifications, and issues to extract functional standards.
-3. **Impact Agent (gemini-3.1-flash-lite)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload.
+2. **Story Agent (gemini-3.1-pro)**: Parses active requirements, specifications, and issues to extract functional standards. Routes to the more capable Pro reasoning model for high-fidelity narrative synthesis.
+3. **Impact Agent (gemini-3.1-pro)**: Maps code dependencies and predicts side-effects. Generates the first stage of the A2UI layout payload. Routes to the Pro model for accurate multi-file blast-radius analysis.
 4. **Task-Breakdown Agent (gemini-3.1-flash-lite)**: Partitions finding summaries into sequenced, atomic task logs.
 5. **Coding Agent (gemini-3.1-flash-lite)**: Executes unit tests and applies refactored fixes inside isolated sandboxes. Emits the final A2UI layout components tree (strictly limited to pre-approved `Card`, `List`, `Text`, and `Button` primitives from the `BasicCatalog` v0.9).
 
@@ -108,13 +108,16 @@ Acts as an interceptor for all tool requests, executing structural RBAC gating a
 ### B. Stateful Quarantine (Red/Blue/Green Teaming)
 * **Red Team**: Injects test payloads into input variables to probe the robustness of the system.
 * **Blue Team**: Monitors active tool execution logs and telemetry for command injection signatures (such as `rm -rf`).
-* **Green Team**: Enforces immediate isolation upon anomaly detection. It transitions the session state to `QUARANTINED`, revokes all tool permissions, and triggers auto-remediation (sanitizing the code block).
+* **Green Team**: Enforces immediate isolation upon anomaly detection. It transitions the session state to `QUARANTINED`, revokes all tool permissions, and dispatches the flagged code to the **Autonomous Remediation Engine** (`AutoRemediationEngine`) which calls a dedicated code-fixing Gemini model to autonomously rewrite the insecure script and stage the patched alternative as a **Vibe Diff** for human approval.
 
 ```mermaid
 graph TD
-    T[Tool Call Called] --> R[Red: Probe Payloads]
+    T[Tool Call] --> R[Red: Probe Payloads]
     R --> B[Blue: Check Signatures]
     B -->|Anomaly Detected| G[Green: Quarantine Session]
+    G -->|Dispatch to Remediation Engine| RE[AutoRemediationEngine]
+    RE -->|LLM Code-Fixing Model| P[Patched Code]
+    P -->|Stage for Human Review| VD[Vibe Diff]
     G -->|Transition State| Q[Lock Tools & Revoke Access]
     B -->|Safe| E[Execute in Sandbox]
 ```
@@ -136,8 +139,13 @@ Verifies human reviewer approvals using WebAuthn/FIDO2 EC key challenge-response
 ### G. Failure Mode Clustering
 Traces failed/corrected/abandoned session logs, generates text embeddings, and clusters them using a pure-Python KMeans algorithm to automatically categorize and document systemic issues (e.g., API limits, AST blocks, prompt injections) under thematic headings.
 
-### H. M2M L402 Microtransactions
-Implements a client retry handler (`L402PaymentHandler`) that intercepts HTTP 402 responses, pays simulated Lightning invoices, and retries the request using cryptographic proofs-of-payment (`Authorization: L402 <token>:<preimage>`).
+### H. M2M L402 Microtransactions — Full Lightning Network Integration
+Implements a production-grade client retry handler (`L402PaymentHandler`) that intercepts HTTP 402 responses and autonomously executes **live Lightning Network micro-payments** before retrying the premium CVE data request:
+* **LND (self-hosted)**: Routes payments via the LND REST API (`POST /v1/channels/transactions`) authenticated with a `Grpc-Metadata-macaroon` header. Decodes the base64 `payment_preimage` from the response.
+* **Alby Hosted Wallet**: Routes payments via the Alby API (`POST api.getalby.com/payments/send`) authenticated with a Bearer token. Reads the hex `payment_preimage` directly from the JSON response.
+* **Offline Fallback**: If no live node credentials are present (`LND_REST_URL`, `LND_MACAROON_HEX`, or `ALBY_API_TOKEN`), falls back transparently to simulated payment so offline testing never breaks.
+
+Retries the original request with `Authorization: L402 <token>:<preimage>` using the cryptographic proof-of-payment.
 
 ---
 
@@ -252,6 +260,9 @@ VibeReview has a comprehensive testing suite verifying the stateful quarantine, 
 
 # Run failure clustering and L402 microtransaction tests
 .venv/bin/pytest tests/unit/test_phase3.py
+
+# Run Autonomous Remediation Feedback Loop and validate_and_remediate integration
+.venv/bin/pytest tests/unit/test_auto_remediation.py
 
 # Run integration tests (requires GOOGLE_API_KEY in .env, runs against AI Studio)
 .venv/bin/pytest tests/integration
@@ -388,19 +399,26 @@ Enforces high-stakes deployment security using WebAuthn/FIDO2 standard challenge
 ### C. Automated Failure Mode Clustering
 Optimizes observability via trace clustering. When session failures, corrections, or user abandonments are logged, the system generates text embeddings and groups them via a pure-Python KMeans clustering implementation to automatically classify systemic agent vulnerabilities and rate-limiting thresholds into actionable reports.
 
-### D. Machine-to-Machine Microtransactions
-Supports autonomous data procurement using the x402 / L402 standard. An HTTP client wrapper (`L402PaymentHandler`) intercepts HTTP 402 responses, parses Lightning/Bolt11 payment invoices, simulates payments, and retries the request using cryptographic proofs-of-payment (`Authorization: L402 <token>:<preimage>`).
+### D. Machine-to-Machine Microtransactions — Full Lightning Network Integration
+Supports autonomous data procurement using the x402 / L402 standard. The `L402PaymentHandler` intercepts HTTP 402 responses, negotiates live Lightning Network micro-payments (via **LND REST API** or **Alby API**), and retries with a cryptographic proof-of-payment (`Authorization: L402 <token>:<preimage>`). Falls back transparently to simulation when no live node credentials are configured, ensuring offline test suites never break.
 
 ### E. Sandboxing & Egress Governance
 - **Dynamic Sandboxing Gating**: Enforces pre-execution AST syntax lints, restricts built-in functions (`eval`, `exec`), and tracks variable taint flows.
 - **Egress Governance**: A static network filter checks and restricts outbound requests to pre-approved developer resources (e.g. `nvd.nist.gov`, `github.com`), preventing indirect prompt injection attacks.
 
+### F. Autonomous Remediation Feedback Loop
+Upgrades the Green Team from a static stub to a full AI-powered self-repair engine:
+- **Trigger**: Any AST violation (`eval`, taint flow, egress breach) or Blue Team anomaly detection immediately dispatches the flagged code and full error trace to the `AutoRemediationEngine`.
+- **Code-Fixing Model**: A dedicated Gemini model (`CODE_FIX_MODEL`, defaults to flash-lite, overridable to Pro) receives a structured prompt containing the violation report and the insecure code, then rewrites it with inline fix comments.
+- **Vibe Diff Staging**: The patched output is serialized as a unified diff (`--- original / +++ patched`) and stored in the ADK session state under `vibe_diff`, making it immediately available for the Cryptographic Hardware MFA Gate to approve before any merge.
+- **Entry Points**: `validate_and_remediate()` (sandbox gate) and `_remediation_engine.remediate()` (Green Team plugin) are the two integration surfaces, both converging on the same `AutoRemediationEngine` singleton.
+
 ---
 
 ## 14. Future Work
 
-* **Full L402 Lightning Network Integration**: Connect the L402 retry handler to live nodes (such as LND or Alby) to enable real micro-payments in production.
-* **Autonomous Remediation Feedback Loops**: Automate AST gating self-repairs using a wider array of code-fixing models.
+* **Multi-Model Remediation Routing**: Extend the `AutoRemediationEngine` to fan out concurrently to multiple specialized code-fixing models (e.g., a security-hardened fine-tune alongside the base Pro model) and return the highest-confidence patch using a scoring rubric.
+* **Remediation Feedback Learning**: Feed accepted and rejected Vibe Diff outcomes back into a fine-tuning dataset so the code-fixing model continuously improves its repair accuracy based on real developer decisions.
 
 ---
 
