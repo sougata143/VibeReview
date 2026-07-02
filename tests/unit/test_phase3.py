@@ -1,5 +1,6 @@
 # tests/unit/test_phase3.py
 import unittest
+import unittest.mock
 import os
 import asyncio
 from app.app_utils.failure_clustering import run_clustering_on_file, get_text_embedding, kmeans
@@ -103,5 +104,55 @@ class TestPhase3(unittest.TestCase):
         self.assertEqual(res["cve"], "CVE-2026-PREMIUM-X")
         self.assertIn("Premium Zero-Day vulnerability in requests", res["name"])
 
+    @unittest.mock.patch('aiohttp.ClientSession.post')
+    def test_pay_invoice_live_lnd_mock(self, mock_post):
+        # Configure LND credentials in environment
+        os.environ["LND_REST_URL"] = "https://localhost:8080"
+        os.environ["LND_MACAROON_HEX"] = "abcdef123456"
+        
+        # Mock successful response returning base64 preimage (hex of abcd)
+        class MockResponse:
+            status = 200
+            async def json(self):
+                return {"payment_preimage": "q80="}
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                pass
+                
+        mock_post.return_value = MockResponse()
+        
+        handler = L402PaymentHandler()
+        preimage = asyncio.run(handler.pay_invoice_live("mock_invoice"))
+        self.assertEqual(preimage, "abcd")
+        
+        # Clean up
+        del os.environ["LND_REST_URL"]
+        del os.environ["LND_MACAROON_HEX"]
+
+    @unittest.mock.patch('aiohttp.ClientSession.post')
+    def test_pay_invoice_live_alby_mock(self, mock_post):
+        # Configure Alby credential in environment
+        os.environ["ALBY_API_TOKEN"] = "mock_alby_token"
+        
+        class MockResponse:
+            status = 200
+            async def json(self):
+                return {"payment_preimage": "mock_alby_preimage_hex"}
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                pass
+                
+        mock_post.return_value = MockResponse()
+        
+        handler = L402PaymentHandler()
+        preimage = asyncio.run(handler.pay_invoice_live("mock_invoice"))
+        self.assertEqual(preimage, "mock_alby_preimage_hex")
+        
+        # Clean up
+        del os.environ["ALBY_API_TOKEN"]
+
 if __name__ == '__main__':
+    import unittest.mock
     unittest.main()
