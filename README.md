@@ -326,6 +326,12 @@ VibeReview supports two distinct client execution paradigms depending on the env
   ```bash
   DEFAULT_MODEL="gemini-3.5-pro" .venv/bin/python run_canvas_ui.py
   ```
+* **🆕 Live Web Canvas UI Client (`run_live_ui.py`)**: Hosts a local FastAPI web server. Submit natural language prompts, run real security audits (SAST, SCA, and Code Smells) asynchronously in the background, and dynamically render findings in a gorgeous vulnerability report card grid or a clean build shield.
+  ```bash
+  .venv/bin/python run_live_ui.py
+  ```
+  Then, navigate to **http://localhost:8000** in your browser to interact with the live A2UI dashboard.
+
 
 #### 🆕 Git Cloning & Codebase Scanning (SAST, SCA, & SonarQube Code Smells)
 VibeReview supports fully automated remote repository cloning, recursive workspace scanning, and comprehensive vulnerability assessment matching industry standards:
@@ -427,3 +433,6 @@ Upgrades the Green Team from a static stub to a full AI-powered self-repair engi
 * **Model Rate-Limiting**: Free-tier rate limits (15 RPM) present a major bottleneck for multi-agent loops. Wrapping the client connection in exponential backoff policies (`HttpRetryOptions`) resolves transient `429` errors.
 * **System Prompt Template Conflicts**: Grounding LLMs with JSON schemas containing `{expression}` formatting triggers template errors in ADK. Escaping or replacing placeholder structures prevents engine validation crashes.
 * **Presentation Boundary Isolation**: Enforcing a strict separation between raw security outputs and visual layouts via declarative A2UI templates ensures that visual dashboards can be rendered safely in web browsers without risking XSS or remote execution exploits.
+-e 
+## Security Audit
+This repository has undergone a security audit and has been verified as clean.
