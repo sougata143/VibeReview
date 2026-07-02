@@ -127,6 +127,18 @@ graph TD
 * **Granular Observability Spans**: OpenTelemetry hooks capture granular pipeline details across `agent.session` (session/query lifecycles), `agent.think` (agent decision processes), and `agent.tool` (tool execution and API call latencies).
 * **Tail-Based Sampling Sampler**: Buffers traces in-memory. Evaluates them after completion and drops routine successful traces to reduce storage costs, but strictly retains any traces containing errors, policy violations (RBAC block/session quarantine), or excessive self-repair loops ($\ge 3$ sandbox/model executions).
 
+### E. Egress Governance
+A static AST analysis checker (`EgressVisitor`) scans all tool calls and scripts to restrict outbound network connections to whitelisted hosts (e.g., `nvd.nist.gov`, `github.com`), blocking all dynamic or variable-driven URLs.
+
+### F. Cryptographic Hardware MFA Gate
+Verifies human reviewer approvals using WebAuthn/FIDO2 EC key challenge-response signature checking. Requires a physical USB key touch to verify the signature before Vibe Diffs are authorized.
+
+### G. Failure Mode Clustering
+Traces failed/corrected/abandoned session logs, generates text embeddings, and clusters them using a pure-Python KMeans algorithm to automatically categorize and document systemic issues (e.g., API limits, AST blocks, prompt injections) under thematic headings.
+
+### H. M2M L402 Microtransactions
+Implements a client retry handler (`L402PaymentHandler`) that intercepts HTTP 402 responses, pays simulated Lightning invoices, and retries the request using cryptographic proofs-of-payment (`Authorization: L402 <token>:<preimage>`).
+
 ---
 
 ## 8. Technologies Used
@@ -227,10 +239,19 @@ Open `.env` in your editor and configure the following variables:
 * `SPANNER_INSTANCE` & `SPANNER_DATABASE`: Spanner parameters.
 
 ### Step 4: Run Verification Tests
-VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, Policy Server, AaaS card packaging, and active UI Canvas integration:
+VibeReview has a comprehensive testing suite verifying the stateful quarantine, context masking, Policy Server, AaaS card packaging, AST sandbox gating, egress firewall, and active UI Canvas integration:
 ```bash
-# Run unit tests locally (runs offline with mocked Google auth credentials)
+# Run all unit tests locally (runs offline with mocked Google auth credentials)
 .venv/bin/pytest tests/unit
+
+# Run specific sandbox gating tests (Linting/AST/Taint checks)
+.venv/bin/pytest tests/unit/test_sandbox_gating.py
+
+# Run webhook, egress governance, and WebAuthn MFA tests
+.venv/bin/pytest tests/unit/test_phase2.py
+
+# Run failure clustering and L402 microtransaction tests
+.venv/bin/pytest tests/unit/test_phase3.py
 
 # Run integration tests (requires GOOGLE_API_KEY in .env, runs against AI Studio)
 .venv/bin/pytest tests/integration
