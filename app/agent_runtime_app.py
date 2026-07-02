@@ -32,36 +32,109 @@ load_dotenv()
 
 def format_hybrid_response(raw_text: str) -> dict:
     """Helper to convert raw text findings to a structured HybridResponse."""
+    import re
     raw_lower = raw_text.lower()
-    has_user_enum = "user enumeration" in raw_lower or "user_enumeration" in raw_lower or "enumeration" in raw_lower
-    has_weak_hash = "weak hashing" in raw_lower or "hash" in raw_lower
-    has_jwt = "jwt" in raw_lower or "token" in raw_lower
-    
-    # Check for SAST / SCA / Code Smells
-    has_sast = "sast" in raw_lower or "sql injection" in raw_lower or "command injection" in raw_lower or "cryptography" in raw_lower or "path traversal" in raw_lower or "xss" in raw_lower
-    has_sca = "sca" in raw_lower or "vulnerable dependency" in raw_lower or "outdated dependency" in raw_lower
-    has_smells = "code smell" in raw_lower or "empty except" in raw_lower or "broad exception" in raw_lower or "todo" in raw_lower
-    
-    vulnerabilities = []
-    if has_user_enum:
-        vulnerabilities.append("User Enumeration in login responses")
-    if has_weak_hash:
-        vulnerabilities.append("Weak SHA-256 Hashing for passwords")
-    if has_jwt:
-        vulnerabilities.append("7-day long JWT Token Expiration policy")
-    if has_sast:
-        vulnerabilities.append("SAST Vulnerabilities (Injection/Insecure Crypto) detected")
-    if has_sca:
-        vulnerabilities.append("SCA Vulnerable/Outdated Dependencies flagged")
-    if has_smells:
-        vulnerabilities.append("SonarQube Code Smells / Quality issues found")
-        
+    parsed_vulns = []
+
+    # Parse individual vulnerabilities line-by-line
+    for line in raw_text.splitlines():
+        line_strip = line.strip()
+        if not line_strip:
+            continue
+            
+        # 1. Parse AST/Taint Gating Sandbox Violations
+        if "gating violation" in line_strip.lower() or "policy violation" in line_strip.lower():
+            severity = "HIGH"
+            vtype = "Sandbox Gating Violation"
+            if "eval" in line_strip.lower() or "exec" in line_strip.lower():
+                vtype = "Prohibited Builtin (eval/exec)"
+                severity = "CRITICAL"
+            elif "taint" in line_strip.lower() or "flows to dangerous sink" in line_strip.lower():
+                vtype = "Dynamic Command Injection"
+                severity = "CRITICAL"
+            elif "structural policy" in line_strip.lower():
+                vtype = "RBAC Authorization Failure"
+                severity = "HIGH"
+                
+            parsed_vulns.append({
+                "type": vtype,
+                "severity": severity,
+                "file": "sandbox_gating.py",
+                "line": "N/A",
+                "code": line_strip
+            })
+            
+        # 2. Parse SAST Vulnerability Rules
+        elif any(kw in line_strip.lower() for kw in ["sql injection", "command injection", "path traversal", "insecure cryptography", "weak hashing", "xss", "ssrf"]):
+            if not any(neg in line_strip.lower() for neg in ["none", "no violations", "no flaws", "0 violations", "zero violations", "passed", "safe", "clean", "no security"]):
+                severity = "HIGH"
+                if "sql" in line_strip.lower() or "command" in line_strip.lower():
+                    severity = "CRITICAL"
+                
+                # Extract file if any
+                file_name = "Unknown"
+                file_match = re.search(r'(?:in|at|file)\s+([a-zA-Z0-9_\-\./]+\.(?:py|js|go|java|rb|cpp|h))', line_strip)
+                if file_match:
+                    file_name = file_match.group(1)
+                    
+                parsed_vulns.append({
+                    "type": "SAST: Vulnerability Detected",
+                    "severity": severity,
+                    "file": file_name,
+                    "line": "N/A",
+                    "code": line_strip
+                })
+                
+        # 3. Parse SCA Package Rules
+        elif any(kw in line_strip.lower() for kw in ["vulnerable dependency", "outdated dependency", "cve-"]):
+            if not any(neg in line_strip.lower() for neg in ["none", "no violations", "passed", "safe", "clean"]):
+                parsed_vulns.append({
+                    "type": "SCA: Package Vulnerability",
+                    "severity": "MEDIUM",
+                    "file": "requirements.txt",
+                    "line": "N/A",
+                    "code": line_strip
+                })
+                
+        # 4. Parse SonarQube Code Smells
+        elif any(kw in line_strip.lower() for kw in ["code smell", "empty except", "broad exception", "todo", "hardcoded credentials"]):
+            if not any(neg in line_strip.lower() for neg in ["none", "no violations", "passed", "safe", "clean"]):
+                severity = "LOW"
+                if "hardcoded" in line_strip.lower() or "credential" in line_strip.lower():
+                    severity = "HIGH"
+                parsed_vulns.append({
+                    "type": "SonarQube: Code Smell / Quality",
+                    "severity": severity,
+                    "file": "Unknown",
+                    "line": "N/A",
+                    "code": line_strip
+                })
+
+    # De-duplicate parsed vulnerabilities
+    unique_vulns = []
+    seen = set()
+    for v in parsed_vulns:
+        key = (v["type"], v["code"])
+        if key not in seen:
+            seen.add(key)
+            unique_vulns.append(v)
+
+    # Boolean flags for metrics mapping
+    has_user_enum = any("user enumeration" in v["code"].lower() for v in unique_vulns)
+    has_weak_hash = any("weak hash" in v["code"].lower() or "cryptography" in v["code"].lower() for v in unique_vulns)
+    has_jwt = any("jwt" in v["code"].lower() or "token" in v["code"].lower() for v in unique_vulns)
+    has_sast = any("sast" in v["type"].lower() or v["type"] == "Dynamic Command Injection" or v["type"] == "Prohibited Builtin (eval/exec)" for v in unique_vulns)
+    has_sca = any("sca" in v["type"].lower() for v in unique_vulns)
+    has_smells = any("sonarqube" in v["type"].lower() for v in unique_vulns)
+
+    vulnerabilities = [v["code"] for v in unique_vulns]
     if not vulnerabilities:
         vulnerabilities.append("Low risk: No immediate vulnerabilities identified.")
 
     data_payload = {
-        "vulnerabilities_found": bool(vulnerabilities and "Low risk" not in vulnerabilities[0]),
+        "vulnerabilities_found": len(unique_vulns) > 0,
         "raw_output": raw_text,
+        "parsed_vulnerabilities": unique_vulns,
         "metrics": {
             "user_enumeration": has_user_enum,
             "weak_hashing": has_weak_hash,
