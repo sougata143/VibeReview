@@ -33,22 +33,41 @@ load_dotenv()
 def format_hybrid_response(raw_text: str) -> dict:
     """Helper to convert raw text findings to a structured HybridResponse."""
     raw_lower = raw_text.lower()
-    has_user_enum = "user enumeration" in raw_lower or "user_enumeration" in raw_lower or "enumeration" in raw_lower
-    has_weak_hash = "weak hashing" in raw_lower or "hash" in raw_lower
-    has_jwt = "jwt" in raw_lower or "token" in raw_lower
-    
-    # Check for SAST / SCA / Code Smells
-    has_sast = "sast" in raw_lower or "sql injection" in raw_lower or "command injection" in raw_lower or "cryptography" in raw_lower or "path traversal" in raw_lower or "xss" in raw_lower
-    has_sca = "sca" in raw_lower or "vulnerable dependency" in raw_lower or "outdated dependency" in raw_lower
-    has_smells = "code smell" in raw_lower or "empty except" in raw_lower or "broad exception" in raw_lower or "todo" in raw_lower
+
+    def check_violation(text_lower: str, keywords: list[str]) -> bool:
+        # Check if any keyword matches
+        matched_kw = None
+        for kw in keywords:
+            if kw in text_lower:
+                matched_kw = kw
+                break
+        if not matched_kw:
+            return False
+            
+        # Inspect line-by-line for negation context
+        for line in text_lower.splitlines():
+            if matched_kw in line:
+                negatives = ["none", "no violations", "no flaws", "0 violations", "zero violations", "passed", "safe", "clean", "no security", "no immediate"]
+                # If negative keyword is present in this line, skip it unless overridden by positive indicators
+                if any(neg in line for neg in negatives) and not any(pos in line for pos in ["flagged", "failed", "violation identified", "violation found"]):
+                    continue
+                return True
+        return False
+
+    has_user_enum = check_violation(raw_lower, ["user enumeration", "user_enumeration", "enumeration"])
+    has_weak_hash = check_violation(raw_lower, ["weak hashing", "weak hash", "insecure hash", "md5", "sha1"])
+    has_jwt = check_violation(raw_lower, ["jwt", "token expiration"])
+    has_sast = check_violation(raw_lower, ["sast", "sql injection", "command injection", "path traversal", "cryptography", "xss"])
+    has_sca = check_violation(raw_lower, ["sca", "vulnerable dependency", "outdated dependency"])
+    has_smells = check_violation(raw_lower, ["code smell", "empty except", "broad exception", "cyclomatic"])
     
     vulnerabilities = []
     if has_user_enum:
         vulnerabilities.append("User Enumeration in login responses")
     if has_weak_hash:
-        vulnerabilities.append("Weak SHA-256 Hashing for passwords")
+        vulnerabilities.append("Weak Hashing / Insecure Cryptography detected")
     if has_jwt:
-        vulnerabilities.append("7-day long JWT Token Expiration policy")
+        vulnerabilities.append("JWT Token Expiration issue detected")
     if has_sast:
         vulnerabilities.append("SAST Vulnerabilities (Injection/Insecure Crypto) detected")
     if has_sca:

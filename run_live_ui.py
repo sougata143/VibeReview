@@ -537,11 +537,12 @@ pass
 
             const listComp = components.find(c => c.type === 'List');
             const vulnerabilities = listComp ? (listComp.items || listComp.properties?.items) : [];
+            const activeVulnerabilities = vulnerabilities.filter(v => v && !v.toLowerCase().includes("low risk"));
 
-            if (vulnerabilities && vulnerabilities.length > 0) {
+            if (activeVulnerabilities && activeVulnerabilities.length > 0) {
                 const listElem = document.createElement('ul');
                 listElem.className = 'a2ui-list';
-                vulnerabilities.forEach(item => {
+                activeVulnerabilities.forEach(item => {
                     const li = document.createElement('li');
                     li.className = 'a2ui-list-item';
                     li.innerText = item;
@@ -551,11 +552,37 @@ pass
             } else {
                 const safeMsg = document.createElement('p');
                 safeMsg.style.color = 'var(--success)';
-                safeMsg.innerText = 'No security issues, taint-flow bugs, or egress violations detected in files.';
+                safeMsg.style.fontWeight = '600';
+                safeMsg.innerText = '✅ No security issues, taint-flow bugs, or egress violations detected in files.';
                 cardElem.appendChild(safeMsg);
             }
 
             root.appendChild(cardElem);
+
+            // 2b. Render Raw Agent Output
+            if (data.raw_output) {
+                const rawCard = document.createElement('div');
+                rawCard.className = 'a2ui-card';
+                rawCard.style.marginTop = '1.2rem';
+                
+                const rawTitle = document.createElement('h3');
+                rawTitle.style.margin = '0 0 0.8rem 0';
+                rawTitle.innerText = '📝 Raw Agent Report Output';
+                rawCard.appendChild(rawTitle);
+                
+                const rawPre = document.createElement('pre');
+                rawPre.style.whiteSpace = 'pre-wrap';
+                rawPre.style.fontFamily = 'monospace';
+                rawPre.style.fontSize = '0.9rem';
+                rawPre.style.background = 'rgba(0, 0, 0, 0.2)';
+                rawPre.style.padding = '1rem';
+                rawPre.style.borderRadius = '6px';
+                rawPre.style.color = '#38bdf8';
+                rawPre.innerText = data.raw_output;
+                rawCard.appendChild(rawPre);
+                
+                root.appendChild(rawCard);
+            }
 
             // 3. Render Buttons/Actions
             const btnGroup = document.createElement('div');
