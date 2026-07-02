@@ -375,19 +375,36 @@ The script will:
 
 ---
 
-## 13. Completed Advanced Security Upgrades (Phase 1 & 2)
+## 13. Enterprise-Grade Enhancements
 
-VibeReview implements the following enterprise-grade security and runtime enhancements:
-* **Dynamic Sandboxing Gating**: Prior to executing code inside the isolated gVisor environment, scripts are compiled to AST to enforce syntax linting (e.g. banning empty `except: pass` handlers), check prohibited function lists (`eval`, `exec`), and trace taint propagation from sources (`sys.argv`, `input()`, `open()`) to dangerous sinks (`subprocess.run()`, `os.system()`). Unsanitized inputs automatically trigger self-repair loops.
-* **Multi-Repository Knowledge Graph**: The Spanner Graph GQL queries and traversals resolve cross-repository dependencies recursively inside `cloned_repos/`, mapping call graphs and imports (`DEPENDS_ON`, `CALLS`) across sibling codebases.
-* **Direct CI Integration**: Pre-configured GitHub Actions workflows (`.github/workflows/vibereview.yml`) invoke VibeReview automatically on pull requests to stage PR summaries directly as comments.
-* **Egress Governance**: A static network checker (`EgressVisitor`) scans execution flows to restrict tool access to whitelisted endpoints (e.g. `nvd.nist.gov`, `github.com`) and block unapproved dynamic external connections.
-* **Durable Session Memory Bank**: Wire-configured Google Cloud Agent Runtime deployments expose `receive_webhook` for automated event triggers. The agent uses Vertex AI Session Service and Memory Bank to persist trajectories and facts across multi-PR refactors.
-* **Cryptographic Hardware MFA approval**: A verification tool (`approve_vibe_diff_with_mfa`) validates WebAuthn/FIDO2 hardware security key signatures on Vibe Diff changes to prevent unauthorized code merges.
+Operating under a strict Zero-Trust architecture, VibeReview implements the following enterprise-grade enhancements to protect runtime assets, govern external communication, and ensure cryptographically-backed developer approval:
+
+### A. Tier 3 Custom Code Review Runtime
+Wires our ADK auditing pipeline directly to source host webhooks (exposing a `/receive_webhook` endpoint). Deployed on the Google Cloud Agent Runtime, this system leverages `VertexAiSessionService` and `VertexAiMemoryBankService` (Memory Bank) to maintain context and persist developer interactions across multi-PR code refactors.
+
+### B. Cryptographic Hardware MFA Gating
+Enforces high-stakes deployment security using WebAuthn/FIDO2 standard challenge-response signatures. Requires the developer to verify a physical cryptographic key touch (via `approve_vibe_diff_with_mfa`) to authorize Vibe Diff merges, preventing unauthorized agent-driven merges.
+
+### C. Automated Failure Mode Clustering
+Optimizes observability via trace clustering. When session failures, corrections, or user abandonments are logged, the system generates text embeddings and groups them via a pure-Python KMeans clustering implementation to automatically classify systemic agent vulnerabilities and rate-limiting thresholds into actionable reports.
+
+### D. Machine-to-Machine Microtransactions
+Supports autonomous data procurement using the x402 / L402 standard. An HTTP client wrapper (`L402PaymentHandler`) intercepts HTTP 402 responses, parses Lightning/Bolt11 payment invoices, simulates payments, and retries the request using cryptographic proofs-of-payment (`Authorization: L402 <token>:<preimage>`).
+
+### E. Sandboxing & Egress Governance
+- **Dynamic Sandboxing Gating**: Enforces pre-execution AST syntax lints, restricts built-in functions (`eval`, `exec`), and tracks variable taint flows.
+- **Egress Governance**: A static network filter checks and restricts outbound requests to pre-approved developer resources (e.g. `nvd.nist.gov`, `github.com`), preventing indirect prompt injection attacks.
 
 ---
 
-## 14. Lessons Learned
+## 14. Future Work
+
+* **Full L402 Lightning Network Integration**: Connect the L402 retry handler to live nodes (such as LND or Alby) to enable real micro-payments in production.
+* **Autonomous Remediation Feedback Loops**: Automate AST gating self-repairs using a wider array of code-fixing models.
+
+---
+
+## 15. Lessons Learned
 
 * **Model Rate-Limiting**: Free-tier rate limits (15 RPM) present a major bottleneck for multi-agent loops. Wrapping the client connection in exponential backoff policies (`HttpRetryOptions`) resolves transient `429` errors.
 * **System Prompt Template Conflicts**: Grounding LLMs with JSON schemas containing `{expression}` formatting triggers template errors in ADK. Escaping or replacing placeholder structures prevents engine validation crashes.
