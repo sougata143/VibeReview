@@ -93,6 +93,53 @@ class LintVisitor(ast.NodeVisitor):
             self.errors.append(f"Lint Warning: Empty exception catch block at line {lineno} is discouraged.")
         self.generic_visit(node)
 
+class EgressVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.errors = []
+        self.approved_hosts = ["github.com", "nvd.nist.gov", "api.github.com", "127.0.0.1", "localhost"]
+
+    def visit_Call(self, node: ast.Call):
+        func_name = self._get_func_name(node.func)
+
+        # Catch network client request calls
+        net_sinks = [
+            "requests.get", "requests.post", "urllib.request.urlopen",
+            "http.client.HTTPConnection", "http.client.HTTPSConnection",
+            "httpx.get", "httpx.post", "socket.connect"
+        ]
+        if func_name in net_sinks:
+            if node.args:
+                first_arg = node.args[0]
+                if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                    url = first_arg.value
+                    hostname = self._extract_hostname(url)
+                    if hostname not in self.approved_hosts:
+                        self.errors.append(
+                            f"Egress Governance Violation: Outbound request to unapproved host '{hostname}' "
+                            f"is blocked to prevent indirect prompt injection."
+                        )
+                else:
+                    self.errors.append(
+                        f"Egress Governance Violation: Dynamic/variable network destination in '{func_name}' "
+                        f"cannot be verified and is blocked."
+                    )
+
+        self.generic_visit(node)
+
+    def _get_func_name(self, node) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            val = self._get_func_name(node.value)
+            return f"{val}.{node.attr}" if val else node.attr
+        return ""
+
+    def _extract_hostname(self, url: str) -> str:
+        match = re.search(r'https?://([^:/\s]+)', url)
+        if match:
+            return match.group(1)
+        return url
+
 def validate_code(code: str, filename: str = "sandbox_code.py") -> List[str]:
     errors = []
 
@@ -111,5 +158,10 @@ def validate_code(code: str, filename: str = "sandbox_code.py") -> List[str]:
     visitor = GatingVisitor()
     visitor.visit(tree)
     errors.extend(visitor.errors)
+
+    # 4. Egress Governance Checks
+    egress_visitor = EgressVisitor()
+    egress_visitor.visit(tree)
+    errors.extend(egress_visitor.errors)
 
     return errors

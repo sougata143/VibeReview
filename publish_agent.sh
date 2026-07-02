@@ -68,7 +68,7 @@ echo "Agent Card URL: ${CARD_URL}"
 
 # Execute registration command (dry-run if offline or mock if in testing)
 if [ "${OFFLINE_DRY_RUN}" = "true" ]; then
-  echo "[Dry Run] Would run: ${CLI_BIN} publish gemini-enterprise --registration-type a2a --agent-card-url ${CARD_URL} --gemini-enterprise-app-id ${APP_ID} --project-id ${PROJECT_ID}"
+  echo "[Dry Run] Would run: ${CLI_BIN} publish gemini-enterprise --registration-type a2a --agent-card-url ${CARD_URL} --gemini-enterprise-app-id ${APP_ID} --project-id ${PROJECT_ID} --update-env-vars SESSION_SERVICE=vertex_ai,ENABLE_MEMORY=true"
 else
   # Run actual registration
   ${CLI_BIN} publish gemini-enterprise \
@@ -76,7 +76,9 @@ else
     --agent-card-url "${CARD_URL}" \
     --gemini-enterprise-app-id "${APP_ID}" \
     --project-id "${PROJECT_ID}" \
-    --display-name "VibeReview Auditor"
+    --display-name "VibeReview Auditor" \
+    --update-env-vars SESSION_SERVICE=vertex_ai,ENABLE_MEMORY=true
 fi
 
+echo "Webhook endpoint exposed at: ${CARD_URL%/*}/receive_webhook"
 echo "=== Publishing & Packaging Pipeline Completed Successfully! ==="

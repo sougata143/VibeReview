@@ -164,8 +164,32 @@ class AgentEngineApp(AdkApp):
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
         operations = super().register_operations()
-        operations[""] = [*operations.get("", []), "register_feedback"]
+        operations[""] = [*operations.get("", []), "register_feedback", "receive_webhook"]
         return operations
+
+    async def receive_webhook(self, payload: dict) -> dict:
+        """Endpoint to receive Git/source host webhooks directly and trigger the ADK pipeline.
+        
+        Args:
+            payload: The webhook JSON payload from the source host.
+        """
+        repository = payload.get("repository", {}).get("clone_url", "")
+        pr_title = payload.get("pull_request", {}).get("title", "")
+        pr_number = payload.get("number", 0)
+        
+        logging.info(f"Received webhook for PR #{pr_number}: {pr_title} in repo {repository}")
+        
+        # Trigger the ADK pipeline to audit the code changes
+        prompt = f"Audit PR #{pr_number} in repository {repository}. Title: {pr_title}"
+        results = []
+        async for event in self.async_stream_query(message=prompt, user_id=f"webhook-PR-{pr_number}"):
+            results.append(event)
+            
+        return {
+            "status": "success",
+            "message": f"Webhook processed. Triggered audit for PR #{pr_number}.",
+            "details": f"Processed {len(results)} events."
+        }
 
     def clone(self) -> "AgentEngineApp":
         """Returns a clone of the Agent Runtime application."""
@@ -312,10 +336,33 @@ class AgentEngineApp(AdkApp):
             yield event
 
 
+from google.adk.sessions import VertexAiSessionService, InMemorySessionService
+from google.adk.memory import VertexAiMemoryBankService, InMemoryMemoryService
+
+def get_session_service():
+    if os.environ.get("SESSION_SERVICE") == "vertex_ai":
+        try:
+            return VertexAiSessionService()
+        except Exception:
+            return InMemorySessionService()
+    return InMemorySessionService()
+
+def get_memory_service():
+    if os.environ.get("ENABLE_MEMORY") == "true":
+        try:
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            return VertexAiMemoryBankService(project=project, location=location)
+        except Exception:
+            return InMemoryMemoryService()
+    return InMemoryMemoryService()
+
 gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION")
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
 agent_runtime = AgentEngineApp(
     app=adk_app,
+    session_service_builder=get_session_service,
+    memory_service_builder=get_memory_service,
     artifact_service_builder=lambda: (
         GcsArtifactService(bucket_name=logs_bucket_name)
         if logs_bucket_name
