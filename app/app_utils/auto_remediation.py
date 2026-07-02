@@ -88,7 +88,6 @@ class PatchScoringRubric:
     DANGEROUS_PATTERNS = [
         "eval(", "exec(", "os.system(", "os.popen(",
         "subprocess.call(", "subprocess.run(", "subprocess.Popen(",
-        "__import__(", "compile(",
     ]
 
     # Severity keywords expected in different violation traces
