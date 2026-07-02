@@ -185,6 +185,7 @@ graph TD
 
 ## 10. Demo Screenshots
 
+### ADK Playground & Pipeline Demos
 ![VibeReview Demo Dashboard 1](assets/demo1.jpeg)
 ![VibeReview Demo Dashboard 2](assets/demo2.jpeg)
 ![VibeReview Demo Dashboard 3](assets/demo3.jpeg)
@@ -193,7 +194,20 @@ graph TD
 ![VibeReview Demo Dashboard 6](assets/demo6.jpeg)
 ![VibeReview Demo Dashboard 7](assets/demo7.jpeg)
 
+### Live A2UI Canvas Dashboard — Clean Build
+| | |
+|---|---|
+| ![Dashboard Input Panel](screenshots/clean_build_part1.png) | ![Clean Build Shield](screenshots/clean_build_part2.png) |
+| ![Agent Report Output](screenshots/clean_build_part3.png) | ![Action Buttons & Quarantine](screenshots/clean_build_part4.png) |
+
+### Live A2UI Canvas Dashboard — Vulnerability Scan Report
+| | |
+|---|---|
+| ![Scan Input Panel](screenshots/vuln_report_part1.png) | ![Vulnerability Table with Severity Badges](screenshots/vuln_report_part2.png) |
+| ![Raw Agent Report Details](screenshots/vuln_report_part3.png) | ![Actions & Footer](screenshots/vuln_report_part4.png) |
+
 ---
+
 
 ## 11. Evaluation
 
