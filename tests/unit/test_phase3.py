@@ -96,5 +96,12 @@ class TestPhase3(unittest.TestCase):
         self.assertEqual(res["body"], "Success! M2M Microtransaction completed.")
         self.assertEqual(call_count, 2)
 
+    def test_fetch_premium_cve_integration(self):
+        from app.sub_agents.search.agent import fetch_premium_cve
+        res = fetch_premium_cve("requests")
+        self.assertEqual(res["status_code"], 200)
+        self.assertEqual(res["cve"], "CVE-2026-PREMIUM-X")
+        self.assertIn("Premium Zero-Day vulnerability in requests", res["name"])
+
 if __name__ == '__main__':
     unittest.main()
